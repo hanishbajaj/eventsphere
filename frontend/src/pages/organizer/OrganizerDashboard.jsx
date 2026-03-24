@@ -6,6 +6,9 @@ import Modal from '../../components/Modal';
 import { api } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import FieldError from '../../components/FieldError';
+import { validateText, validateAmount, validateDate, validateUrl, validateDescription, numericInputProps } from '../../utils/validation';
+import { formatCurrency } from '../../utils/currency';
 
 const CATEGORIES = ['Concert / Music', 'Sports', 'Conference', 'Workshop', 'Theater', 'Festival', 'Webinar', 'Charity Gala'];
 
@@ -14,15 +17,54 @@ function EventForm({ initial, onSave, onCancel, loading }) {
     title: '', category: 'Conference', date: '', endDate: '',
     venue: '', address: '', description: '', price: '', image: '', tags: '', seatCount: 40
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => {
+    setForm(f => ({ ...f, [k]: v }));
+    if (touched[k]) setErrors(e => ({ ...e, [k]: validateField(k, v) }));
+  };
+
+  const validateField = (k, v) => {
+    switch (k) {
+      case 'title':       return validateText(v, { label: 'Title', min: 3 }).error;
+      case 'venue':       return validateText(v, { label: 'Venue', min: 3 }).error;
+      case 'date':        return validateDate(v, { label: 'Start date' }).error;
+      case 'description': return validateDescription(v, { min: 10 }).error;
+      case 'price':       return v !== '' ? validateAmount(v, { min: 0, allowZero: true, label: 'Price' }).error : '';
+      case 'image':       return validateUrl(v).error;
+      default:            return '';
+    }
+  };
+
+  const handleBlur = (k) => {
+    setTouched(t => ({ ...t, [k]: true }));
+    setErrors(e => ({ ...e, [k]: validateField(k, form[k]) }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const requiredFields = ['title', 'venue', 'date'];
+    const optionalFields = ['price', 'image', 'description'];
+    const allFields = [...requiredFields, ...optionalFields];
+    setTouched(Object.fromEntries(allFields.map(f => [f, true])));
+    const errs = Object.fromEntries(allFields.map(f => [f, validateField(f, form[f])]));
+    setErrors(errs);
+    if (Object.values(errs).some(Boolean)) return;
+    onSave(form);
+  };
+
+  const priceProps = numericInputProps(form.price, v => set('price', v));
 
   return (
-    <form onSubmit={e => { e.preventDefault(); onSave(form); }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+    <form onSubmit={handleSubmit} noValidate>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 16 }}>
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
           <label className="form-label">Event Title *</label>
-          <input required className="form-input" value={form.title} onChange={e => set('title', e.target.value)} placeholder="Give your event a name" />
+          <input className={`form-input ${touched.title && errors.title ? 'error' : ''}`}
+            value={form.title} onChange={e => set('title', e.target.value)} onBlur={() => handleBlur('title')}
+            placeholder="Give your event a name" />
+          <FieldError error={touched.title && errors.title} />
         </div>
         <div className="form-group">
           <label className="form-label">Category *</label>
@@ -31,43 +73,64 @@ function EventForm({ initial, onSave, onCancel, loading }) {
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">Ticket Price ($)</label>
-          <input type="number" min="0" className="form-input" value={form.price} onChange={e => set('price', e.target.value)} placeholder="0 for free" />
+          <label className="form-label">Ticket Price (₹)</label>
+          <input type="text" inputMode="decimal"
+            className={`form-input ${touched.price && errors.price ? 'error' : ''}`}
+            placeholder="0 for free"
+            {...priceProps}
+            onBlur={(e) => { priceProps.onBlur(e); handleBlur('price'); }}
+          />
+          <FieldError error={touched.price && errors.price} />
         </div>
         <div className="form-group">
           <label className="form-label">Start Date & Time *</label>
-          <input required type="datetime-local" className="form-input" value={form.date} onChange={e => set('date', e.target.value)} />
+          <input type="datetime-local" className={`form-input ${touched.date && errors.date ? 'error' : ''}`}
+            value={form.date} onChange={e => set('date', e.target.value)} onBlur={() => handleBlur('date')} />
+          <FieldError error={touched.date && errors.date} />
         </div>
         <div className="form-group">
           <label className="form-label">End Date & Time</label>
-          <input type="datetime-local" className="form-input" value={form.endDate} onChange={e => set('endDate', e.target.value)} />
+          <input type="datetime-local" className="form-input"
+            value={form.endDate} onChange={e => set('endDate', e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Venue Name *</label>
-          <input required className="form-input" value={form.venue} onChange={e => set('venue', e.target.value)} placeholder="Venue / hall name" />
+          <input className={`form-input ${touched.venue && errors.venue ? 'error' : ''}`}
+            value={form.venue} onChange={e => set('venue', e.target.value)} onBlur={() => handleBlur('venue')}
+            placeholder="Venue / hall name" />
+          <FieldError error={touched.venue && errors.venue} />
         </div>
         <div className="form-group">
           <label className="form-label">Full Address</label>
-          <input className="form-input" value={form.address} onChange={e => set('address', e.target.value)} placeholder="Street, City, State" />
+          <input className="form-input" value={form.address}
+            onChange={e => set('address', e.target.value)} placeholder="Street, City, State" />
         </div>
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
           <label className="form-label">Description</label>
-          <textarea className="form-input" rows={3} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Describe your event..." />
+          <textarea className={`form-input ${touched.description && errors.description ? 'error' : ''}`}
+            rows={3} value={form.description}
+            onChange={e => set('description', e.target.value)} onBlur={() => handleBlur('description')}
+            placeholder="Describe your event (min 10 characters)..." />
+          <FieldError error={touched.description && errors.description} />
         </div>
         <div className="form-group">
           <label className="form-label">Image URL</label>
-          <input className="form-input" value={form.image} onChange={e => set('image', e.target.value)} placeholder="https://..." />
+          <input className={`form-input ${touched.image && errors.image ? 'error' : ''}`}
+            value={form.image} onChange={e => set('image', e.target.value)} onBlur={() => handleBlur('image')}
+            placeholder="https://..." />
+          <FieldError error={touched.image && errors.image} />
         </div>
         <div className="form-group">
           <label className="form-label">Tags (comma-separated)</label>
-          <input className="form-input" value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="music, outdoor, family" />
+          <input className="form-input" value={form.tags}
+            onChange={e => set('tags', e.target.value)} placeholder="music, outdoor, family" />
         </div>
         <div className="form-group">
           <label className="form-label">Seat Count (max 50)</label>
-          <input type="number" min="1" max="50" className="form-input" value={form.seatCount} onChange={e => set('seatCount', e.target.value)} />
+          <input type="number" min="1" max="50" className="form-input"
+            value={form.seatCount} onChange={e => set('seatCount', Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))} />
         </div>
       </div>
-
       <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
         <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
         <motion.button type="submit" className="btn btn-gold" disabled={loading} whileTap={{ scale: 0.97 }}>
@@ -397,7 +460,7 @@ export default function OrganizerDashboard({ tab = 'Overview' }) {
             {[
               { v: events.length, l: 'Total Events', i: '📋', c: 'var(--blue)' },
               { v: totalSold, l: 'Tickets Sold', i: '🎫', c: 'var(--gold)' },
-              { v: `$${totalRevenue.toLocaleString()}`, l: 'Revenue', i: '💰', c: 'var(--green)' },
+              { v: formatCurrency(totalRevenue), l: 'Revenue', i: '💰', c: 'var(--green)' },
               { v: requests.filter(r => r.status === 'pending').length, l: 'Pending Sponsors', i: '🤝', c: 'var(--orange)' },
             ].map((s, i) => (
               <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
@@ -505,7 +568,7 @@ export default function OrganizerDashboard({ tab = 'Overview' }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, color: 'var(--green)' }}>
-                          ${req.amount?.toLocaleString()}
+                          {formatCurrency(req.amount)}
                         </div>
                         <span className={`badge ${req.status === 'accepted' ? 'badge-green' : req.status === 'rejected' ? 'badge-red' : 'badge-orange'}`}>
                           {req.status}
@@ -589,7 +652,7 @@ export default function OrganizerDashboard({ tab = 'Overview' }) {
             <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 20 }}>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 4 }}>From</div>
               <div style={{ fontWeight: 600 }}>{selectedRequest.sponsorCompany}</div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 4 }}>Offering ${selectedRequest.amount?.toLocaleString()}</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 4 }}>Offering {formatCurrency(selectedRequest.amount)}</div>
               {selectedRequest.message && (
                 <div style={{ marginTop: 8, fontSize: '0.875rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
                   "{selectedRequest.message}"

@@ -1,6 +1,7 @@
 // components/EventCard.jsx
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '../utils/currency';
 
 const CATEGORY_CLASSES = {
   'Concert / Music': 'cat-concert',
@@ -65,7 +66,7 @@ export default function EventCard({ event, index = 0, onClick }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <span className={`badge ${catClass}`}>{event.category}</span>
           <span className="event-card-price">
-            {event.price === 0 ? 'Free' : `$${event.price}`}
+            {event.price === 0 ? 'Free' : formatCurrency(event.price)}
           </span>
         </div>
 

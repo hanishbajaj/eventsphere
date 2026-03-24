@@ -4,11 +4,12 @@ const express = require('express');
 const cors = require('cors');
 const { seedDatabase } = require('./models/seed');
 
-const authRoutes = require('./routes/auth');
-const eventRoutes = require('./routes/events');
-const ticketRoutes = require('./routes/tickets');
+const authRoutes    = require('./routes/auth');
+const eventRoutes   = require('./routes/events');
+const ticketRoutes  = require('./routes/tickets');
 const sponsorRoutes = require('./routes/sponsors');
-const userRoutes = require('./routes/users');
+const userRoutes    = require('./routes/users');
+const paymentRoutes = require('./routes/payments');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,11 +31,12 @@ app.use((req, _res, next) => {
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/tickets', ticketRoutes);
+app.use('/api/auth',     authRoutes);
+app.use('/api/events',   eventRoutes);
+app.use('/api/tickets',  ticketRoutes);
 app.use('/api/sponsors', sponsorRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/users',    userRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));

@@ -35,7 +35,6 @@ router.get('/', (req, res) => {
       const q = search.toLowerCase();
       events = events.filter(e =>
         e.title.toLowerCase().includes(q) ||
-        e.description.toLowerCase().includes(q) ||
         e.venue.toLowerCase().includes(q)
       );
     }
@@ -62,14 +61,32 @@ router.get('/:id', (req, res) => {
 router.post('/', authenticate, authorize('organizer', 'admin'), (req, res) => {
   try {
     const { title, category, date, endDate, venue, address, description, price, image, tags, seatCount } = req.body;
-    if (!title || !category || !date || !venue)
-      return res.status(400).json({ message: 'Title, category, date, and venue are required' });
+
+    // Required field checks
+    if (!title || !title.trim()) return res.status(400).json({ message: 'Event title is required' });
+    if (title.trim().length < 3) return res.status(400).json({ message: 'Title must be at least 3 characters' });
+    if (!category) return res.status(400).json({ message: 'Category is required' });
+    if (!date) return res.status(400).json({ message: 'Start date is required' });
+    if (new Date(date) < new Date()) return res.status(400).json({ message: 'Start date cannot be in the past' });
+    if (!venue || !venue.trim()) return res.status(400).json({ message: 'Venue is required' });
+    if (venue.trim().length < 3) return res.status(400).json({ message: 'Venue must be at least 3 characters' });
+
+    // Price validation — reject trailing decimal or invalid format
+    if (price !== undefined && price !== '') {
+      const priceStr = String(price).trim();
+      if (!/^\d+(\.\d{1,2})?$/.test(priceStr)) return res.status(400).json({ message: 'Price must be a valid number (e.g. 0 or 299.99)' });
+      if (parseFloat(priceStr) < 0) return res.status(400).json({ message: 'Price cannot be negative' });
+    }
+
+    // Image URL check
+    if (image && image.trim() && !/^https?:\/\/.+/.test(image.trim()))
+      return res.status(400).json({ message: 'Image must be a valid URL starting with http:// or https://' });
 
     const event = Events.create({
       id: uuidv4(),
-      title, category,
+      title: title.trim(), category,
       date, endDate: endDate || date,
-      venue, address: address || venue,
+      venue: venue.trim(), address: address || venue,
       description: description || '',
       price: parseFloat(price) || 0,
       image: image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80',

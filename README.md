@@ -135,7 +135,7 @@ FRONTEND_URL=http://localhost:5173
 |------|-------|----------|
 | 🛡 Admin | admin@eventsphere.com | Admin123! |
 | 📋 Organizer | organizer@eventsphere.com | Organizer1! |
-| 🤝 Sponsor | sponsor@eventsphere.com | Sponsor1! |
+|  Sponsor | sponsor@eventsphere.com | Sponsor1! |
 | 🎫 Buyer | buyer@eventsphere.com | Buyer123! |
 
 > **Tip:** The login page has one-click demo account fill buttons.
@@ -183,7 +183,7 @@ src={`https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&...`}
 - Analytics per event (tickets sold, revenue, capacity bar)
 - Sponsor request inbox with accept/reject modals + notes
 
-### 🤝 Sponsor
+###  Sponsor
 - Interactive **react-big-calendar** showing all events by date
 - Click any calendar event → animated detail popup → sponsor button
 - Submit sponsorship requests with amount + message

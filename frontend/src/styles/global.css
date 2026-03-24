@@ -340,6 +340,7 @@ select.form-input { cursor: pointer; }
 
 @media (max-width: 1180px) {
   .hero-cards-desktop { display: none !important; }
+  .hero-globe-desktop { display: none !important; }
 }
 
 /* ─── DIVIDERS ─────────────────────────────────── */
@@ -508,10 +509,39 @@ select.form-input { cursor: pointer; }
 .sidebar-item.active .sidebar-icon { opacity: 1; }
 
 @media (max-width: 768px) {
-  .dash-sidebar { display: none; }
+  .dash-sidebar {
+    width: 100% !important;
+    min-height: unset !important;
+    height: auto !important;
+    position: static !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 0 8px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+    display: flex !important;
+  }
+  .dash-sidebar::-webkit-scrollbar { display: none; }
+  .dash-layout { flex-direction: column !important; }
   .dash-content { padding: 20px 16px; }
+  .sidebar-item {
+    flex-shrink: 0 !important;
+    border-left: none !important;
+    border-bottom: 3px solid transparent !important;
+    padding: 12px 16px !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+  }
+  .sidebar-item.active {
+    border-left-color: transparent !important;
+    border-bottom-color: var(--gold) !important;
+  }
+  .dash-sidebar .sidebar-user { display: none !important; }
+  .dash-sidebar .sidebar-logout { display: none !important; }
 }
-
 /* ─── EVENT CARD ─────────────────────────────────── */
 .event-card {
   border-radius: var(--radius-lg);
@@ -1609,4 +1639,232 @@ select.form-input { cursor: pointer; }
   .ticket-qr-inner svg { width: 150px !important; height: 150px !important; }
   .ticket-actions { flex-direction: column; }
   .ticket-actions .btn { min-width: unset; }
+}
+
+/* ═══════════════════════════════════════════════════
+   GLOBAL MOBILE RESPONSIVENESS
+   ═══════════════════════════════════════════════════ */
+
+/* ── Container padding ── */
+@media (max-width: 768px) {
+  .container { padding: 0 16px; }
+}
+
+/* ── Navbar mobile ── */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .nav-actions { gap: 8px; }
+  .nav-logo { font-size: 1.2rem !important; }
+}
+
+/* ── Dashboard layout ── */
+@media (max-width: 768px) {
+  .dash-layout {
+    flex-direction: column !important;
+  }
+  .dash-sidebar {
+    width: 100% !important;
+    min-height: unset !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    padding: 12px 16px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  .dash-content {
+    padding: 20px 16px !important;
+  }
+  .sidebar-item {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    padding: 8px 14px !important;
+    font-size: 0.78rem !important;
+  }
+  .sidebar-item span:first-child {
+    display: none !important;
+  }
+}
+
+/* ── Event grid — 3 col → 2 col → 1 col ── */
+@media (max-width: 900px) {
+  .events-grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 560px) {
+  .events-grid-3 { grid-template-columns: 1fr !important; }
+}
+
+/* ── Modals full screen on mobile ── */
+@media (max-width: 640px) {
+  .modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+  }
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+}
+
+/* ── Buttons full width on small screens ── */
+@media (max-width: 480px) {
+  .btn-lg {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ── Stat cards wrap ── */
+@media (max-width: 640px) {
+  .stat-cards-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+@media (max-width: 380px) {
+  .stat-cards-row { grid-template-columns: 1fr !important; }
+}
+
+/* ── Rating summary ── */
+@media (max-width: 560px) {
+  .rating-summary {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .rating-big { text-align: left !important; }
+}
+
+/* ── Landing hero text ── */
+@media (max-width: 640px) {
+  .hero-headline { font-size: 2.2rem !important; }
+}
+
+/* ── Horizontal scroll sections ── */
+.landing-horizontal-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.landing-horizontal-scroll::-webkit-scrollbar { display: none; }
+
+/* ── EventDetail responsive grid ── */
+.event-detail-grid {
+  grid-template-columns: 1fr 360px;
+}
+.event-sidebar-sticky {
+  position: sticky;
+  top: 100px;
+}
+@media (max-width: 900px) {
+  .event-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .event-sidebar-sticky {
+    position: static !important;
+    order: -1; /* sidebar moves above content on mobile */
+  }
+}
+
+/* ── Organizer form full width on mobile ── */
+@media (max-width: 640px) {
+  .organizer-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .organizer-form-grid > [style*="span 2"] {
+    grid-column: span 1 !important;
+  }
+}
+
+/* ── Register page role selector ── */
+@media (max-width: 480px) {
+  .role-selector {
+    flex-direction: column !important;
+  }
+}
+
+/* ── Hero CTA buttons ── */
+@media (max-width: 480px) {
+  .hero-cta-group {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  .hero-cta-group a,
+  .hero-cta-group button {
+    width: 100% !important;
+  }
+}
+
+/* ── Stats strip ── */
+@media (max-width: 640px) {
+  .stats-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px !important;
+  }
+}
+
+/* ── Category pills wrap ── */
+@media (max-width: 640px) {
+  .category-pills {
+    gap: 6px !important;
+  }
+  .category-pill {
+    font-size: 0.72rem !important;
+    padding: 5px 12px !important;
+  }
+}
+
+/* ── Seat map on mobile ── */
+@media (max-width: 640px) {
+  .seat { width: 22px !important; height: 22px !important; font-size: 0.48rem !important; }
+}
+
+/* ── Landing page ── */
+@media (max-width: 768px) {
+  .landing-why-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .landing-timeline {
+    flex-direction: column !important;
+  }
+}
+
+/* ── Mobile navbar ── */
+.mobile-nav-right {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 768px) {
+  .nav-links { display: none !important; }
+  .mobile-nav-right { display: flex !important; }
+}
+
+/* ── Event detail grid responsive ── */
+@media (max-width: 900px) {
+  .event-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .event-sidebar-sticky {
+    position: static !important;
+    order: -1;
+  }
+}
+
+/* ── Events page search + filters responsive ── */
+@media (max-width: 640px) {
+  .events-filters-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
+/* ── Login/Register card ── */
+@media (max-width: 480px) {
+  .auth-card { padding: 24px 20px !important; }
 }

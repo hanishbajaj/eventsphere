@@ -5,23 +5,31 @@ const { Users, Events, Tickets, SponsorRequests } = require('./db');
 
 const CATEGORIES = ['Concert / Music', 'Sports', 'Conference', 'Workshop', 'Theater', 'Festival', 'Webinar', 'Charity Gala'];
 
-// Generate seat array (50 max) based on category
-function generateSeats(category, count = 40) {
-  const usePits = ['Concert / Music', 'Festival'].includes(category);
-  if (usePits) {
+// Generate seat array based on category — only for appropriate event types
+function generateSeats(category) {
+  const pitCategories = ['Concert / Music', 'Festival'];
+  const gridCategories = ['Theater', 'Sports', 'Charity Gala'];
+
+  if (pitCategories.includes(category)) {
     return [
       { id: 'fp', zone: 'Front Pit', capacity: 10, booked: 4, type: 'pit' },
       { id: 'mp', zone: 'Main Pit', capacity: 20, booked: 8, type: 'pit' },
       { id: 'gp', zone: 'General Pit', capacity: 20, booked: 5, type: 'pit' },
     ];
   }
-  return Array.from({ length: Math.min(count, 50) }, (_, i) => ({
-    id: `S${i + 1}`,
-    number: i + 1,
-    row: String.fromCharCode(65 + Math.floor(i / 10)),
-    status: Math.random() > 0.3 ? 'available' : 'booked',
-    type: 'seat',
-  }));
+
+  if (gridCategories.includes(category)) {
+    return Array.from({ length: 40 }, (_, i) => ({
+      id: `S${i + 1}`,
+      number: i + 1,
+      row: String.fromCharCode(65 + Math.floor(i / 10)),
+      status: Math.random() > 0.3 ? 'available' : 'booked',
+      type: 'seat',
+    }));
+  }
+
+  // Conference, Workshop, Webinar — general admission, no seats
+  return [];
 }
 
 const sampleEvents = [
@@ -34,7 +42,7 @@ const sampleEvents = [
     address: '1600 Pennsylvania Ave NW, Washington DC',
     description: 'An enchanting evening of classical fusion where orchestral strings meet electronic beats. Experience music as you\'ve never heard it before under an open sky.',
     image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-    price: 85,
+    price: 7000,    // ₹7,000 (Concert)
     tags: ['classical', 'electronic', 'outdoor'],
     status: 'approved',
     featured: true,
@@ -48,7 +56,7 @@ const sampleEvents = [
     address: '747 Howard St, San Francisco, CA 94103',
     description: 'Three days of visionary talks, panel discussions, and hands-on workshops from the world\'s leading AI researchers and tech entrepreneurs.',
     image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
-    price: 450,
+    price: 37000,   // ₹37,000 (Conference)
     tags: ['AI', 'technology', 'networking'],
     status: 'approved',
     featured: true,
@@ -62,7 +70,7 @@ const sampleEvents = [
     address: '115 W 65th St, New York, NY 10023',
     description: 'A bold modern retelling of Shakespeare\'s masterpiece set in a corporate dystopia. Winner of four Westie Awards for Outstanding Production.',
     image: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=800&q=80',
-    price: 120,
+    price: 9900,    // ₹9,900 (Theater)
     tags: ['shakespeare', 'drama', 'theater'],
     status: 'approved',
     featured: false,
@@ -76,7 +84,7 @@ const sampleEvents = [
     address: '233 S Wacker Dr, Chicago, IL 60606',
     description: 'The premier city marathon with 10K, 21K, and 42K routes. Spectator stands available along the course with VIP viewing areas.',
     image: 'https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?w=800&q=80',
-    price: 35,
+    price: 2900,    // ₹2,900 (Sports)
     tags: ['marathon', 'running', 'outdoor'],
     status: 'approved',
     featured: false,
@@ -90,7 +98,7 @@ const sampleEvents = [
     address: '600 Festival Dr, Austin, TX 78701',
     description: 'A three-day celebration of art, music, and light installations. Over 200 artists, 40 live performances, and immersive light sculptures spread across 15 acres.',
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80',
-    price: 65,
+    price: 5400,    // ₹5,400 (Festival)
     tags: ['art', 'lights', 'family'],
     status: 'approved',
     featured: true,
@@ -104,7 +112,7 @@ const sampleEvents = [
     address: '88 Colin P Kelly Jr St, San Francisco, CA',
     description: 'An intensive hands-on workshop with industry leaders on crafting emotionally resonant digital experiences. Limited to 30 participants.',
     image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800&q=80',
-    price: 299,
+    price: 24900,   // ₹24,900 (Workshop)
     tags: ['design', 'UX', 'skills'],
     status: 'approved',
     featured: false,
@@ -132,7 +140,7 @@ const sampleEvents = [
     address: '1150 22nd St NW, Washington, DC 20037',
     description: 'An elegant black-tie gala raising funds for underprivileged schools across 12 states. Silent auction, live entertainment, and a 3-course dinner.',
     image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&q=80',
-    price: 500,
+    price: 41000,   // ₹41,000 (Charity Gala)
     tags: ['charity', 'education', 'formal'],
     status: 'approved',
     featured: true,

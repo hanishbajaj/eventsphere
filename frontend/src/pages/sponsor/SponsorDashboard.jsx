@@ -10,6 +10,9 @@ import EventCard from '../../components/EventCard';
 import { api } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import FieldError from '../../components/FieldError';
+import { validateAmount, numericInputProps } from '../../utils/validation';
+import { formatCurrency } from '../../utils/currency';
 
 const localizer = momentLocalizer(moment);
 
@@ -26,6 +29,7 @@ export default function SponsorDashboard({ tab = 'Overview' }) {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [requestForm, setRequestForm] = useState({ eventId: '', amount: '', message: '' });
+  const [requestErrors, setRequestErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [filterCat, setFilterCat] = useState('All');
   const [search, setSearch] = useState('');
@@ -47,15 +51,19 @@ export default function SponsorDashboard({ tab = 'Overview' }) {
 
   const handleSendRequest = async (e) => {
     e.preventDefault();
-    if (!requestForm.eventId || !requestForm.amount) {
-      toast('Event and amount are required', 'error'); return;
-    }
+    const errs = {};
+    if (!requestForm.eventId) errs.eventId = 'Please select an event';
+    const amtResult = validateAmount(requestForm.amount, { min: 100, label: 'Amount' });
+    if (!amtResult.valid) errs.amount = amtResult.error;
+    setRequestErrors(errs);
+    if (Object.keys(errs).length > 0) { toast('Please fix the errors below', 'error'); return; }
     setSubmitting(true);
     try {
       await api.sendSponsorRequest(requestForm);
       toast('Sponsorship request sent successfully!', 'success');
       setShowRequestModal(false);
       setRequestForm({ eventId: '', amount: '', message: '' });
+      setRequestErrors({});
       load();
     } catch (err) {
       toast(err.message, 'error');
@@ -110,8 +118,8 @@ export default function SponsorDashboard({ tab = 'Overview' }) {
             {[
               { v: requests.length, l: 'Total Requests', i: '📨', c: 'var(--green)' },
               { v: requests.filter(r => r.status === 'accepted').length, l: 'Accepted', i: '✅', c: 'var(--gold)' },
-              { v: `$${totalCommitted.toLocaleString()}`, l: 'Committed Funding', i: '💰', c: 'var(--blue)' },
-              { v: `$${totalPending.toLocaleString()}`, l: 'Pending Amount', i: '⏳', c: 'var(--orange)' },
+              { v: formatCurrency(totalCommitted), l: 'Committed Funding', i: '💰', c: 'var(--blue)' },
+              { v: formatCurrency(totalPending), l: 'Pending Amount', i: '⏳', c: 'var(--orange)' },
             ].map((s, i) => (
               <motion.div
                 key={s.l}
@@ -188,7 +196,7 @@ export default function SponsorDashboard({ tab = 'Overview' }) {
                       </div>
                     </div>
                     <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--green)', fontSize: '1.1rem' }}>
-                      ${req.amount?.toLocaleString()}
+                      {formatCurrency(req.amount)}
                     </div>
                     <span className={`badge ${req.status === 'accepted' ? 'badge-green' : req.status === 'rejected' ? 'badge-red' : 'badge-orange'}`}>
                       {req.status}
@@ -314,7 +322,7 @@ export default function SponsorDashboard({ tab = 'Overview' }) {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 600, color: 'var(--green)', lineHeight: 1 }}>
-                        ${req.amount?.toLocaleString()}
+                        {formatCurrency(req.amount)}
                       </div>
                       <span
                         className={`badge ${req.status === 'accepted' ? 'badge-green' : req.status === 'rejected' ? 'badge-red' : 'badge-orange'}`}
@@ -397,25 +405,26 @@ export default function SponsorDashboard({ tab = 'Overview' }) {
             {!selectedEvent && (
               <div className="form-group">
                 <label className="form-label">Select Event *</label>
-                <select required className="form-input" value={requestForm.eventId} onChange={e => setRequestForm(f => ({ ...f, eventId: e.target.value }))}>
+                <select className={`form-input ${requestErrors.eventId ? 'error' : ''}`} value={requestForm.eventId}
+                  onChange={e => { setRequestForm(f => ({ ...f, eventId: e.target.value })); setRequestErrors(er => ({ ...er, eventId: '' })); }}>
                   <option value="">Choose an event...</option>
                   {events.map(ev => (
                     <option key={ev.id} value={ev.id}>{ev.title}</option>
                   ))}
                 </select>
+                <FieldError error={requestErrors.eventId} />
               </div>
             )}
             <div className="form-group">
-              <label className="form-label">Sponsorship Amount ($) *</label>
+              <label className="form-label">Sponsorship Amount (₹) *</label>
               <input
-                required
-                type="number"
-                min="100"
-                className="form-input"
-                placeholder="e.g. 5000"
-                value={requestForm.amount}
-                onChange={e => setRequestForm(f => ({ ...f, amount: e.target.value }))}
+                type="text"
+                inputMode="decimal"
+                className={`form-input ${requestErrors.amount ? 'error' : ''}`}
+                placeholder="e.g. 5000 (min ₹100)"
+                {...numericInputProps(requestForm.amount, v => { setRequestForm(f => ({ ...f, amount: v })); setRequestErrors(er => ({ ...er, amount: '' })); })}
               />
+              <FieldError error={requestErrors.amount} />
             </div>
             <div className="form-group">
               <label className="form-label">Message to Organizer</label>

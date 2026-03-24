@@ -36,6 +36,7 @@ export const api = {
 
   // Tickets
   purchaseTicket: (body) => fetch(`${BASE}/tickets/purchase`, { method: 'POST', headers: headers(), body: JSON.stringify(body) }).then(handle),
+  createPaymentIntent: (body) => fetch(`${BASE}/payments/create-intent`, { method: 'POST', headers: headers(), body: JSON.stringify(body) }).then(handle),
   getMyTickets: () => fetch(`${BASE}/tickets/my`, { headers: headers() }).then(handle),
   getTicket: (id) => fetch(`${BASE}/tickets/${id}`, { headers: headers() }).then(handle),
 

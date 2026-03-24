@@ -16,18 +16,26 @@ const signToken = (user) =>
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role, company } = req.body;
-    if (!name || !email || !password || !role)
-      return res.status(400).json({ message: 'All fields are required' });
+
+    if (!name || !name.trim()) return res.status(400).json({ message: 'Name is required' });
+    if (name.trim().length < 2) return res.status(400).json({ message: 'Name must be at least 2 characters' });
+    if (!email || !email.trim()) return res.status(400).json({ message: 'Email is required' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+      return res.status(400).json({ message: 'Enter a valid email address' });
+    if (!password) return res.status(400).json({ message: 'Password is required' });
+    if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    if (!/\d/.test(password)) return res.status(400).json({ message: 'Password must include at least one number' });
+    if (!role) return res.status(400).json({ message: 'Role is required' });
 
     const validRoles = ['buyer', 'organizer', 'sponsor'];
     if (!validRoles.includes(role))
       return res.status(400).json({ message: 'Invalid role. Choose: buyer, organizer, or sponsor' });
 
-    if (Users.findOne({ email }))
-      return res.status(409).json({ message: 'Email already registered' });
+    if (role === 'sponsor' && (!company || !company.trim()))
+      return res.status(400).json({ message: 'Company name is required for sponsors' });
 
-    if (password.length < 8)
-      return res.status(400).json({ message: 'Password must be at least 8 characters' });
+    if (Users.findOne({ email: email.trim() }))
+      return res.status(409).json({ message: 'Email already registered' });
 
     const hashed = await bcrypt.hash(password, 12);
     const user = Users.create({

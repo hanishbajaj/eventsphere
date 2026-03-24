@@ -51,28 +51,28 @@ const FEATURED_EVENTS = [
     title: 'Nocturne: A Symphony Under the Stars',
     category: 'Concert / Music',
     date: 'Aug 15',
-    price: '$85',
+    price: '₹7,000',
     image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&q=80',
   },
   {
     title: 'TechSummit 2026: AI Frontier',
     category: 'Conference',
     date: 'Sep 10',
-    price: '$450',
+    price: '₹37,000',
     image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&q=80',
   },
   {
     title: 'Aurora Festival of Lights',
     category: 'Festival',
     date: 'Oct 01',
-    price: '$65',
+    price: '₹5,500',
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80',
   },
   {
     title: 'Gala for Education',
     category: 'Charity Gala',
     date: 'Nov 14',
-    price: '$500',
+    price: '₹41,000',
     image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=80',
   },
 ];
@@ -240,7 +240,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div style={{ overflow: 'hidden', position: 'relative' }}>
+    <div style={{ overflowX: 'clip', position: 'relative' }}>
       <motion.div
         style={{
           position: 'fixed',
@@ -264,7 +264,7 @@ export default function Landing() {
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
-          overflow: 'hidden',
+          overflowX: 'clip',
         }}
       >
         <motion.div
@@ -356,41 +356,71 @@ export default function Landing() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.75, delay: 0.12 }}
-              style={{ marginBottom: 28, fontWeight: 700, position: 'relative', zIndex: 1, fontSize: 'clamp(2.4rem, 4.5vw, 4rem)', lineHeight: 1.15 }}
+              style={{ marginBottom: 28, fontWeight: 700, position: 'relative', zIndex: 1, fontSize: 'clamp(2.4rem, 4.5vw, 4rem)', lineHeight: 1.15, overflow: 'visible' }}
             >
               Events That{' '}
               <span
                 style={{
                   display: 'inline-block',
-                  width: '5.5em',
-                  height: '1.15em',
                   position: 'relative',
-                  overflow: 'hidden',
-                  verticalAlign: 'bottom',
-                  textAlign: 'left',
+                  overflow: 'visible',
+                  verticalAlign: 'baseline',
+                  whiteSpace: 'nowrap',
+                  /* Extra right padding accounts for italic slant overhang on the last letter */
+                  paddingRight: '0.35em',
                 }}
               >
-                <AnimatePresence mode="popLayout">
-                  <motion.em
-                    key={HERO_WORDS[heroWordIndex]}
-                    initial={{ y: '100%' }}
-                    animate={{ y: '0%' }}
-                    exit={{ y: '-100%' }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      display: 'inline-block',
-                      fontStyle: 'italic',
-                      background: 'linear-gradient(135deg, #c9a84c, #e8c96e, #f0d88a, #c9a84c)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                      position: 'absolute',
-                      left: 0,
-                    }}
-                  >
-                    {HERO_WORDS[heroWordIndex]}
-                  </motion.em>
-                </AnimatePresence>
+                {/* Invisible italic sizer — gives the span its natural width including italic metrics */}
+                <em
+                  aria-hidden="true"
+                  style={{
+                    fontStyle: 'italic',
+                    fontWeight: 700,
+                    visibility: 'hidden',
+                    display: 'inline-block',
+                    whiteSpace: 'nowrap',
+                    paddingRight: '0.35em',
+                  }}
+                >
+                  {HERO_WORDS.reduce((a, b) => (a.length >= b.length ? a : b))}
+                </em>
+                {/* Inner wrapper clips vertically for the slot-scroll effect, overflow:visible on right for italic */}
+                <span style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  right: 0,
+                  overflow: 'hidden',
+                  paddingRight: '0.35em',
+                  display: 'block',
+                }}>
+                  <AnimatePresence mode="wait">
+                    <motion.em
+                      key={HERO_WORDS[heroWordIndex]}
+                      initial={{ y: '100%', opacity: 0 }}
+                      animate={{ y: '0%', opacity: 1 }}
+                      exit={{ y: '-100%', opacity: 0 }}
+                      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                      style={{
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap',
+                        fontStyle: 'italic',
+                        fontWeight: 700,
+                        paddingRight: '0.35em',
+                        background: 'linear-gradient(135deg, #c9a84c, #e8c96e, #f0d88a, #c9a84c)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                      }}
+                    >
+                      {HERO_WORDS[heroWordIndex]}
+                    </motion.em>
+                  </AnimatePresence>
+                </span>
               </span>
               <br />
               You
@@ -442,74 +472,282 @@ export default function Landing() {
           </div>
         </div>
 
+        {/* ─── HERO RIGHT: Animated Globe Visual ──────── */}
         <motion.div
           initial={{ opacity: 0, x: 80 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.58 }}
+          transition={{ duration: 1.1, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: 'absolute',
-            right: '5%',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 180px)',
-            gap: 14,
-            zIndex: 2,
-            perspective: 1200,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: '50%',
+            pointerEvents: 'none',
+            zIndex: 1,
+            overflow: 'hidden',
           }}
-          className="hero-cards-desktop"
+          className="hero-globe-desktop"
         >
-          {FEATURED_EVENTS.map((event, index) => (
-            <motion.div
-              key={event.title}
-              initial={{ opacity: 0, y: 22 }}
-              animate={{ opacity: 1, y: [0, -8, 0] }}
-              transition={{
-                opacity: { delay: 0.7 + index * 0.1, duration: 0.45 },
-                y: { delay: index * 0.35, repeat: Infinity, duration: 6 + index, ease: 'easeInOut' },
-              }}
-              whileHover={{
-                y: -14,
-                scale: 1.04,
-                rotateX: -6,
-                rotateY: index % 2 === 0 ? 6 : -6,
-                boxShadow: '0 22px 48px rgba(201,168,76,0.18)',
-              }}
-              style={{
-                borderRadius: 'var(--radius-md)',
-                overflow: 'hidden',
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, var(--bg-card) 100%)',
-                border: '1px solid var(--border)',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-md)',
-                transformStyle: 'preserve-3d',
-              }}
-              onClick={() => navigate('/events')}
+          {/* Layer 1 — radial glow base */}
+          <motion.div
+            animate={{ opacity: [0.5, 0.85, 0.5], scale: [1, 1.06, 1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 560, height: 560,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(201,168,76,0.11) 0%, rgba(92,140,224,0.06) 45%, transparent 72%)',
+              filter: 'blur(24px)',
+            }}
+          />
+
+          {/* Layer 2 — outer ring pulse */}
+          <motion.div
+            animate={{ opacity: [0.18, 0.06, 0.18], scale: [1, 1.22, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 500, height: 500,
+              borderRadius: '50%',
+              border: '1.5px solid rgba(201,168,76,0.35)',
+            }}
+          />
+          <motion.div
+            animate={{ opacity: [0.1, 0.03, 0.1], scale: [1, 1.38, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 500, height: 500,
+              borderRadius: '50%',
+              border: '1px solid rgba(201,168,76,0.2)',
+            }}
+          />
+
+          {/* Layer 3 — SVG globe with rotating grid */}
+          <div style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 420, height: 420,
+          }}>
+            <motion.svg
+              viewBox="0 0 420 420"
+              style={{ width: '100%', height: '100%', opacity: 0.55 }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 80, repeat: Infinity, ease: 'linear' }}
             >
-              <div style={{ height: 104, overflow: 'hidden', position: 'relative' }}>
-                <motion.img
-                  src={event.image}
-                  alt={event.title}
-                  whileHover={{ scale: 1.08 }}
-                  transition={{ duration: 0.45 }}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.8)' }}
+              <defs>
+                <radialGradient id="hgGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.15" />
+                  <stop offset="60%" stopColor="#5c8ce0" stopOpacity="0.06" />
+                  <stop offset="100%" stopColor="#08080f" stopOpacity="0" />
+                </radialGradient>
+                <clipPath id="hgClip">
+                  <circle cx="210" cy="210" r="192" />
+                </clipPath>
+                <filter id="hgBlur">
+                  <feGaussianBlur stdDeviation="1.5" />
+                </filter>
+              </defs>
+
+              {/* Globe fill */}
+              <circle cx="210" cy="210" r="192" fill="url(#hgGlow)" opacity="0.9" />
+
+              {/* Latitude lines */}
+              {[-70, -45, -20, 0, 20, 45, 70].map((deg, i) => {
+                const y = 210 + 192 * Math.sin((deg * Math.PI) / 180);
+                const rx = 192 * Math.cos((deg * Math.PI) / 180);
+                const isEquator = deg === 0;
+                return (
+                  <ellipse
+                    key={`lat${i}`}
+                    cx="210" cy={y}
+                    rx={rx} ry={rx * 0.16}
+                    fill="none"
+                    stroke={isEquator ? '#c9a84c' : '#3a5a8a'}
+                    strokeWidth={isEquator ? 0.9 : 0.5}
+                    opacity={isEquator ? 0.7 : 0.38}
+                    clipPath="url(#hgClip)"
+                  />
+                );
+              })}
+
+              {/* Longitude ellipses */}
+              {[0, 24, 48, 72, 96, 120, 144].map((angle, i) => (
+                <ellipse
+                  key={`lng${i}`}
+                  cx="210" cy="210"
+                  rx="62" ry="192"
+                  fill="none"
+                  stroke={i % 3 === 0 ? '#c9a84c' : '#3a5a8a'}
+                  strokeWidth={i % 3 === 0 ? 0.8 : 0.45}
+                  opacity={i % 3 === 0 ? 0.55 : 0.3}
+                  transform={`rotate(${angle}, 210, 210)`}
+                  clipPath="url(#hgClip)"
                 />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,8,15,0.45), transparent)' }} />
-              </div>
-              <div style={{ padding: '12px 12px 14px' }}>
-                <div style={{ fontSize: '0.6rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                  {event.category}
-                </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.8rem', lineHeight: 1.35 }}>
-                  {event.title}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                  <span>{event.date}</span>
-                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{event.price}</span>
-                </div>
-              </div>
+              ))}
+
+              {/* Dot grid overlay */}
+              {Array.from({ length: 11 }, (_, row) =>
+                Array.from({ length: 22 }, (_, col) => {
+                  const dx = (col / 21) * 420;
+                  const dy = (row / 10) * 420;
+                  const dist = Math.hypot(dx - 210, dy - 210);
+                  if (dist > 188) return null;
+                  const brightness = 1 - dist / 192;
+                  return (
+                    <circle
+                      key={`d${row}-${col}`}
+                      cx={dx} cy={dy} r="1.5"
+                      fill={col % 5 === 0 ? '#c9a84c' : '#5c8ce0'}
+                      opacity={0.25 + brightness * 0.35}
+                    />
+                  );
+                })
+              )}
+
+              {/* Rim */}
+              <circle cx="210" cy="210" r="191"
+                fill="none" stroke="#c9a84c" strokeWidth="1.2" opacity="0.28" />
+            </motion.svg>
+
+            {/* Counter-rotate inner details for depth */}
+            <motion.svg
+              viewBox="0 0 420 420"
+              style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, opacity: 0.3 }}
+              animate={{ rotate: -360 }}
+              transition={{ duration: 120, repeat: Infinity, ease: 'linear' }}
+            >
+              <defs>
+                <clipPath id="hgClip2">
+                  <circle cx="210" cy="210" r="188" />
+                </clipPath>
+              </defs>
+              {[15, 55, 95, 135].map((angle, i) => (
+                <ellipse
+                  key={`inner${i}`}
+                  cx="210" cy="210"
+                  rx="30" ry="188"
+                  fill="none"
+                  stroke="#c9a84c"
+                  strokeWidth="0.6"
+                  opacity="0.4"
+                  transform={`rotate(${angle}, 210, 210)`}
+                  clipPath="url(#hgClip2)"
+                />
+              ))}
+            </motion.svg>
+          </div>
+
+          {/* Layer 4 — orbiting event icons */}
+          {[
+            { emoji: '🎤', angle: 0,   orbitR: 235, size: '1.5rem', dur: 22, delay: 0 },
+            { emoji: '🎵', angle: 58,  orbitR: 215, size: '1.3rem', dur: 28, delay: 1.4 },
+            { emoji: '🎬', angle: 115, orbitR: 245, size: '1.35rem', dur: 24, delay: 0.7 },
+            { emoji: '🎭', angle: 180, orbitR: 220, size: '1.4rem', dur: 30, delay: 2.1 },
+            { emoji: '🎟', angle: 238, orbitR: 230, size: '1.25rem', dur: 26, delay: 0.3 },
+            { emoji: '🎉', angle: 295, orbitR: 210, size: '1.2rem', dur: 20, delay: 1.8 },
+          ].map((item) => (
+            <motion.div
+              key={item.emoji + item.angle}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: item.delay + 0.8, duration: 0.8 }}
+              style={{
+                position: 'absolute',
+                top: '50%', left: '50%',
+                width: 0, height: 0,
+              }}
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: item.dur, repeat: Infinity, ease: 'linear' }}
+                style={{ position: 'absolute', width: 0, height: 0 }}
+              >
+                <motion.span
+                  animate={{ opacity: [0.65, 1, 0.65] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: item.delay }}
+                  style={{
+                    position: 'absolute',
+                    fontSize: item.size,
+                    left: item.orbitR * Math.cos((item.angle * Math.PI) / 180) - 12,
+                    top:  item.orbitR * Math.sin((item.angle * Math.PI) / 180) - 12,
+                    filter: 'drop-shadow(0 0 10px rgba(201,168,76,0.55))',
+                    display: 'block',
+                  }}
+                >
+                  {item.emoji}
+                </motion.span>
+              </motion.div>
             </motion.div>
           ))}
+
+          {/* Layer 5 — floating ambient particles */}
+          {Array.from({ length: 18 }, (_, i) => ({
+            x: 15 + Math.sin(i * 1.37) * 45,
+            y: 10 + (i / 17) * 80,
+            size: 1.5 + (i % 4) * 0.8,
+            dur: 7 + (i % 5) * 2.2,
+            delay: (i * 0.55) % 6,
+            gold: i % 3 === 0,
+          })).map((p, i) => (
+            <motion.div
+              key={`ap${i}`}
+              style={{
+                position: 'absolute',
+                left: `${p.x}%`,
+                top: `${p.y}%`,
+                width: p.size,
+                height: p.size,
+                borderRadius: '50%',
+                background: p.gold ? '#c9a84c' : '#5c8ce0',
+                opacity: 0,
+              }}
+              animate={{
+                opacity: [0, p.gold ? 0.55 : 0.35, 0],
+                y: [0, -28 - (i % 3) * 10, 0],
+                x: [0, (i % 2 === 0 ? 1 : -1) * 8, 0],
+              }}
+              transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          ))}
+
+          {/* Layer 6 — gold gradient light sweep (right edge) */}
+          <motion.div
+            animate={{ x: ['-100%', '120%'] }}
+            transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', repeatDelay: 4 }}
+            style={{
+              position: 'absolute',
+              top: '20%', bottom: '20%',
+              left: 0,
+              width: '40%',
+              background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.06), rgba(201,168,76,0.12), rgba(201,168,76,0.06), transparent)',
+              filter: 'blur(16px)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Layer 7 — vertical cinematic light flare */}
+          <motion.div
+            animate={{ opacity: [0, 0.22, 0], scaleY: [0.6, 1.2, 0.6] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2.5, repeatDelay: 5 }}
+            style={{
+              position: 'absolute',
+              top: '10%', bottom: '10%',
+              left: '48%',
+              width: 2,
+              background: 'linear-gradient(to bottom, transparent, rgba(201,168,76,0.5), rgba(201,168,76,0.7), rgba(201,168,76,0.5), transparent)',
+              filter: 'blur(3px)',
+              transformOrigin: 'center',
+            }}
+          />
         </motion.div>
 
         <motion.div
@@ -1113,7 +1351,7 @@ export default function Landing() {
       <footer style={{ background: 'var(--bg-base)', padding: '48px 0 32px', borderTop: '1px solid var(--border)' }}>
         <div className="container">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24, marginBottom: 32 }}>
-            <img src="/cropped_circle_image.png" alt="EventSphere" style={{ height: 150, width: 'auto' }} />
+            <img src="/logo_transparent (1).png" alt="EventSphere" style={{ height: 150, width: 'auto' }} />
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               {['Explore Events', 'Sign In', 'Register', 'Privacy', 'Terms'].map((label) => (
                 <motion.span

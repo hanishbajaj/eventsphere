@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
+import { formatCurrency } from '../../utils/currency';
 import DashLayout from '../../components/DashLayout';
 import EventCard from '../../components/EventCard';
 import Modal from '../../components/Modal';
@@ -115,7 +116,7 @@ export default function BuyerDashboard({ tab = 'Overview' }) {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--gold)', fontSize: '1.1rem' }}>
-                      ${ticket.price}
+                      {formatCurrency(ticket.price)}
                     </div>
                     <span className="badge badge-green" style={{ marginTop: 4 }}>{ticket.status}</span>
                   </div>
@@ -132,7 +133,7 @@ export default function BuyerDashboard({ tab = 'Overview' }) {
           <div className="grid-4" style={{ marginBottom: 40 }}>
             <StatCard value={tickets.length} label="Tickets Purchased" icon="🎫" color="var(--gold)" delay={0} />
             <StatCard value={tickets.filter(t => new Date(t.eventDate) > new Date()).length} label="Upcoming Events" icon="📅" color="var(--blue)" delay={0.07} />
-            <StatCard value={`$${tickets.reduce((s, t) => s + (t.price || 0), 0)}`} label="Total Spent" icon="💳" color="var(--green)" delay={0.14} />
+            <StatCard value={formatCurrency(tickets.reduce((s, t) => s + (t.price || 0), 0))} label="Total Spent" icon="💳" color="var(--green)" delay={0.14} />
             <StatCard value={events.length} label="Featured Events" icon="⭐" color="var(--orange)" delay={0.21} />
           </div>
 

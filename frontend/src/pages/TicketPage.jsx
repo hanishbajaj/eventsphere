@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../utils/api';
+import { formatCurrency } from '../utils/currency';
 
 export default function TicketPage() {
   const { id } = useParams();
@@ -212,7 +213,7 @@ export default function TicketPage() {
                 transition={{ delay: 0.6 }}
               >
                 <span className="ticket-detail-label">Total Paid</span>
-                <span className="ticket-detail-value">${ticket.price}</span>
+                <span className="ticket-detail-value">{formatCurrency(ticket.price)}</span>
               </motion.div>
             </div>
           </div>

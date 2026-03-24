@@ -1,6 +1,16 @@
 // components/SeatMap.jsx
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCurrency } from '../utils/currency';
+
+// Categories that use pit/zone system
+export const PIT_CATEGORIES = ['Concert / Music', 'Festival'];
+
+// Categories that use assigned seat grid
+export const SEAT_GRID_CATEGORIES = ['Theater', 'Sports', 'Charity Gala'];
+
+// All categories that support any seating selection
+export const SEATED_CATEGORIES = [...PIT_CATEGORIES, ...SEAT_GRID_CATEGORIES];
 
 // Regular seat grid (Theater, Sports, etc.)
 function SeatGrid({ seats, selected, onSelect }) {
@@ -194,7 +204,7 @@ export default function SeatMap({ event, onConfirm }) {
                 {isPit ? `${selected.zone} × ${quantity}` : `Row ${selected.row}, Seat ${selected.number}`}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                Total: <strong style={{ color: 'var(--gold)' }}>${(event.price * (isPit ? quantity : 1)).toFixed(2)}</strong>
+                Total: <strong style={{ color: 'var(--gold)' }}>{formatCurrency(event.price * (isPit ? quantity : 1))}</strong>
               </div>
             </div>
             <button className="btn btn-gold" onClick={handleConfirm}>

@@ -58,6 +58,7 @@ export default function DashLayout({ children, activeTab }) {
       <aside className="dash-sidebar">
         {/* User profile */}
         <motion.div
+          className="sidebar-user"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           style={{ padding: '0 16px 24px', borderBottom: '1px solid var(--border)', marginBottom: 8 }}
@@ -94,7 +95,7 @@ export default function DashLayout({ children, activeTab }) {
         </nav>
 
         {/* Logout */}
-        <div style={{ position: 'absolute', bottom: 24, left: 0, right: 0, padding: '0 16px' }}>
+        <div className="sidebar-logout" style={{ position: 'absolute', bottom: 24, left: 0, right: 0, padding: '0 16px' }}>
           <button
             onClick={() => { logout(); navigate('/'); }}
             className="btn btn-ghost btn-sm"

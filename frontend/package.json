@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^5.6.1",
+    "@stripe/stripe-js": "^8.11.0",
     "date-fns": "^3.3.1",
     "framer-motion": "^10.16.16",
     "jspdf": "^4.2.0",

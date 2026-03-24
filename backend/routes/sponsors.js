@@ -8,12 +8,20 @@ const { authenticate, authorize } = require('../middleware/auth');
 router.post('/request', authenticate, authorize('sponsor'), (req, res) => {
   try {
     const { eventId, amount, message } = req.body;
-    if (!eventId || !amount) return res.status(400).json({ message: 'Event and amount required' });
+    if (!eventId) return res.status(400).json({ message: 'Event is required' });
+    if (amount === undefined || amount === null || amount === '')
+      return res.status(400).json({ message: 'Amount is required' });
+
+    const amountStr = String(amount).trim();
+    if (!/^\d+(\.\d{1,2})?$/.test(amountStr))
+      return res.status(400).json({ message: 'Amount must be a valid number (e.g. 500 or 500.00)' });
+    const amountNum = parseFloat(amountStr);
+    if (amountNum < 100)
+      return res.status(400).json({ message: 'Minimum sponsorship amount is ₹100' });
 
     const event = Events.findById(eventId);
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
-    // Check duplicate
     const existing = SponsorRequests.findOne({ eventId, sponsorId: req.user.id, status: 'pending' });
     if (existing) return res.status(409).json({ message: 'You already have a pending request for this event' });
 
@@ -25,7 +33,7 @@ router.post('/request', authenticate, authorize('sponsor'), (req, res) => {
       sponsorId: req.user.id,
       sponsorName: req.user.name,
       sponsorCompany: req.user.company || req.user.name,
-      amount: parseFloat(amount),
+      amount: amountNum,
       message: message || '',
       status: 'pending',
     });

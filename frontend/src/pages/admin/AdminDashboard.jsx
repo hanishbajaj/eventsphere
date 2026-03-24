@@ -5,7 +5,7 @@ import DashLayout from '../../components/DashLayout';
 import Modal from '../../components/Modal';
 import { api } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
-
+import { formatCurrency } from '../../utils/currency';
 const ROLE_BADGE = {
   buyer: 'badge-red',
   organizer: 'badge-blue',
@@ -138,7 +138,7 @@ export default function AdminDashboard({ tab = 'Overview' }) {
               { v: stats.users.total, l: 'Total Users', i: '👥', c: 'var(--blue)' },
               { v: stats.events.approved, l: 'Live Events', i: '🎪', c: 'var(--green)' },
               { v: stats.tickets.total, l: 'Tickets Sold', i: '🎫', c: 'var(--gold)' },
-              { v: `$${(stats.tickets.revenue || 0).toLocaleString()}`, l: 'Platform Revenue', i: '💰', c: 'var(--orange)' },
+              { v: formatCurrency(stats.tickets.revenue || 0), l: 'Platform Revenue', i: '💰', c: 'var(--orange)' },
             ].map((s, i) => (
               <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
                 className="stat-card" style={{ borderLeft: `3px solid ${s.c}` }}>
@@ -342,7 +342,7 @@ export default function AdminDashboard({ tab = 'Overview' }) {
               ]},
               { title: 'Ticket Sales', items: [
                 { label: 'Total Tickets', value: stats.tickets.total, color: 'var(--gold)' },
-                { label: 'Revenue', value: `$${(stats.tickets.revenue || 0).toFixed(0)}`, color: 'var(--green)' },
+                { label: 'Revenue', value: formatCurrency(stats.tickets.revenue || 0), color: 'var(--green)' },
               ]},
             ].map((section, idx) => (
               <motion.div key={section.title}

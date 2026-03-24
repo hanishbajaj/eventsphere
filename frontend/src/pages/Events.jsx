@@ -6,6 +6,10 @@ import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import EventCard from '../components/EventCard';
+import Modal from '../components/Modal';
+import FieldError from '../components/FieldError';
+import { validateAmount, numericInputProps } from '../utils/validation';
+import { formatCurrency } from '../utils/currency';
 
 const CATEGORIES = ['All', 'Concert / Music', 'Sports', 'Conference', 'Workshop', 'Theater', 'Festival', 'Webinar', 'Charity Gala'];
 
@@ -112,7 +116,7 @@ function AIRecommendations({ events }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span className="badge badge-gold" style={{ fontSize: '0.65rem' }}>{ev.category}</span>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--gold)', fontSize: '0.95rem' }}>
-                  {ev.price === 0 ? 'Free' : `$${ev.price}`}
+                  {ev.price === 0 ? 'Free' : formatCurrency(ev.price)}
                 </span>
               </div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6, lineHeight: 1.3 }}>
@@ -139,6 +143,38 @@ export default function Events() {
   const [params, setParams] = useSearchParams();
   const [view, setView] = useState('grid');
   const toast = useToast();
+  const { user } = useAuth();
+
+  // Sponsor request modal
+  const [sponsorEvent, setSponsorEvent] = useState(null);
+  const [sponsorForm, setSponsorForm] = useState({ amount: '', message: '' });
+  const [sponsorErrors, setSponsorErrors] = useState({});
+  const [sponsorLoading, setSponsorLoading] = useState(false);
+
+  const openSponsorModal = (e, event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSponsorEvent(event);
+    setSponsorForm({ amount: '', message: '' });
+    setSponsorErrors({});
+  };
+
+  const handleSponsorSubmit = async (e) => {
+    e.preventDefault();
+    const amtResult = validateAmount(sponsorForm.amount, { min: 100, label: 'Amount' });
+    if (!amtResult.valid) { setSponsorErrors({ amount: amtResult.error }); return; }
+    setSponsorErrors({});
+    setSponsorLoading(true);
+    try {
+      await api.sendSponsorRequest({ eventId: sponsorEvent.id, ...sponsorForm });
+      toast('Sponsorship request sent!', 'success');
+      setSponsorEvent(null);
+    } catch (err) {
+      toast(err.message || 'Failed to send request', 'error');
+    } finally {
+      setSponsorLoading(false);
+    }
+  };
 
   const activeCategory = params.get('category') || 'All';
 
@@ -172,7 +208,7 @@ export default function Events() {
       <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '48px 0 32px' }}>
         <div className="container">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div style={{ color: 'var(--gold)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>
+            <div style={{ color: 'var(--gold)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>
               Discover
             </div>
             <h1 style={{ fontWeight: 300, marginBottom: 24 }}>All Events</h1>
@@ -271,26 +307,104 @@ export default function Events() {
                   onClick={() => window.location.href = `/events/${event.id}`}
                 >
                   <img src={event.image} alt={event.title} style={{ width: 160, height: 120, objectFit: 'cover', flexShrink: 0 }} />
-                  <div style={{ padding: '20px 20px 20px 0', flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span className="badge badge-gold">{event.category}</span>
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--gold)', fontSize: '1.1rem' }}>
-                        {event.price === 0 ? 'Free' : `$${event.price}`}
-                      </span>
+                  <div style={{ padding: '20px 20px 20px 0', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span className="badge badge-gold">{event.category}</span>
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--gold)', fontSize: '1.1rem' }}>
+                          {event.price === 0 ? 'Free' : formatCurrency(event.price)}
+                        </span>
+                      </div>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: 6 }}>{event.title}</h3>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                        {event.venue} · {new Date(event.date).toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </div>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: 6 }}>{event.title}</h3>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                      {event.venue} · {new Date(event.date).toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </div>
+                    {user?.role === 'sponsor' && (
+                      <button
+                        className="btn btn-gold btn-sm"
+                        style={{ marginLeft: 20, flexShrink: 0 }}
+                        onClick={(e) => openSponsorModal(e, event)}
+                      >
+                        🤝 Sponsor
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ) : (
-                <EventCard key={event.id} event={event} index={i} />
+                <div key={event.id} style={{ position: 'relative' }}>
+                  <EventCard event={event} index={i} />
+                  {user?.role === 'sponsor' && (
+                    <button
+                      className="btn btn-gold btn-sm"
+                      style={{ position: 'absolute', bottom: 64, right: 16, zIndex: 2 }}
+                      onClick={(e) => openSponsorModal(e, event)}
+                    >
+                      🤝 Sponsor
+                    </button>
+                  )}
+                </div>
               )
             ))}
           </div>
         )}
       </div>
+
+      {/* ─── SPONSOR REQUEST MODAL ───────────────── */}
+      <Modal open={!!sponsorEvent} onClose={() => setSponsorEvent(null)} title="Send Sponsorship Request" maxWidth={480}>
+        {sponsorEvent && (
+          <form onSubmit={handleSponsorSubmit}>
+            {/* Event preview */}
+            <div style={{
+              background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)',
+              padding: '14px 18px', marginBottom: 24,
+              display: 'flex', alignItems: 'center', gap: 14
+            }}>
+              <img src={sponsorEvent.image} alt="" style={{ width: 56, height: 44, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 2 }}>{sponsorEvent.title}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {sponsorEvent.venue} · {new Date(sponsorEvent.date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+              <div className="form-group">
+                <label className="form-label">Sponsorship Amount ($) *</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className={`form-input ${sponsorErrors.amount ? 'error' : ''}`}
+                  placeholder="e.g. 5000 (min ₹100)"
+                  {...numericInputProps(sponsorForm.amount, v => { setSponsorForm(f => ({ ...f, amount: v })); setSponsorErrors({}); })}
+                />
+                <FieldError error={sponsorErrors.amount} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Message (optional)</label>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  placeholder="Briefly describe your sponsorship goals..."
+                  value={sponsorForm.message}
+                  onChange={e => setSponsorForm(f => ({ ...f, message: e.target.value }))}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setSponsorEvent(null)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-gold" style={{ flex: 1, justifyContent: 'center' }} disabled={sponsorLoading}>
+                {sponsorLoading ? 'Sending…' : '🤝 Send Request'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

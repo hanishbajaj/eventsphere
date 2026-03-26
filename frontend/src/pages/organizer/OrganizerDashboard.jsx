@@ -32,7 +32,7 @@ function EventForm({ initial, onSave, onCancel, loading }) {
       case 'date':        return validateDate(v, { label: 'Start date' }).error;
       case 'description': return validateDescription(v, { min: 10 }).error;
       case 'price':       return v !== '' ? validateAmount(v, { min: 0, allowZero: true, label: 'Price' }).error : '';
-      case 'image':       return validateUrl(v).error;
+      case 'image':       return (v && v.startsWith('data:image/')) ? '' : validateUrl(v).error;
       default:            return '';
     }
   };
@@ -114,10 +114,37 @@ function EventForm({ initial, onSave, onCancel, loading }) {
           <FieldError error={touched.description && errors.description} />
         </div>
         <div className="form-group">
-          <label className="form-label">Image URL</label>
-          <input className={`form-input ${touched.image && errors.image ? 'error' : ''}`}
-            value={form.image} onChange={e => set('image', e.target.value)} onBlur={() => handleBlur('image')}
-            placeholder="https://..." />
+          <label className="form-label">Event Banner Image</label>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {form.image && (
+              <img src={form.image} alt="Preview" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
+            )}
+            <label className={`btn btn-outline ${touched.image && errors.image ? 'error' : ''}`} style={{ cursor: 'pointer', flex: 1, justifyContent: 'center', margin: 0 }}>
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  const img = new Image();
+                  img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1200;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    set('image', canvas.toDataURL('image/jpeg', 0.8));
+                  };
+                  img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+              }} />
+              {form.image ? "Change Image" : "Upload Banner"}
+            </label>
+          </div>
           <FieldError error={touched.image && errors.image} />
         </div>
         <div className="form-group">
@@ -603,7 +630,7 @@ export default function OrganizerDashboard({ tab = 'Overview' }) {
                     <div className="stat-label">Tickets Sold</div>
                   </div>
                   <div>
-                    <div className="stat-number" style={{ fontSize: '1.8rem', color: 'var(--green)' }}>${ev.revenue || 0}</div>
+                    <div className="stat-number" style={{ fontSize: '1.8rem', color: 'var(--green)' }}>₹{ev.revenue || 0}</div>
                     <div className="stat-label">Revenue</div>
                   </div>
                 </div>

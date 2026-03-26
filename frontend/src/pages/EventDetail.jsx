@@ -13,6 +13,7 @@ import FieldError from "../components/FieldError";
 import { validateAmount, numericInputProps } from "../utils/validation";
 import { formatCurrency } from "../utils/currency";
 import Modal from "../components/Modal";
+import { MagneticWrapper } from "../components/Interactive";
 
 // ── Stripe setup ──────────────────────────────────────────────────────────────
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -490,17 +491,22 @@ export default function EventDetail() {
   };
 
   const date = new Date(event.date);
+  const isExpired = date < new Date();
   const catClass = CATEGORY_CLASSES[event.category] || "badge-gold";
   const hasSeats = event.seats?.length > 0;
   const supportsSeating = SEATED_CATEGORIES.includes(event.category);
   const isPitEvent = PIT_CATEGORIES.includes(event.category);
   const googleMapsQuery = encodeURIComponent(event.address || event.venue);
 
+  const highResImage = event.image 
+    ? event.image.replace('w=800', 'w=1920') 
+    : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1920&q=80';
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
       {/* Hero image */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ height: "45vh", position: "relative", overflow: "hidden" }}>
-        <img src={event.image} alt={event.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <img src={highResImage} alt={event.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, var(--bg-base) 100%)" }} />
         <motion.button onClick={() => navigate(-1)} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
           style={{ position: "absolute", top: 20, left: 24, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "var(--radius-sm)", color: "#fff", padding: "8px 16px", fontSize: "0.82rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
@@ -518,6 +524,7 @@ export default function EventDetail() {
               <span className={`badge ${catClass}`}>{event.category}</span>
               {event.featured && <span className="badge badge-gold">⭐ Featured</span>}
               <span className={`badge ${event.status === "approved" ? "badge-green" : "badge-orange"}`}>{event.status}</span>
+              {isExpired && <span className="badge" style={{ background: "rgba(224,92,92,0.15)", color: "var(--red)", border: "1px solid rgba(224,92,92,0.3)" }}>EXPIRED</span>}
             </div>
 
             <h1 style={{ marginBottom: 20, fontWeight: 400, fontSize: "clamp(1.8rem, 4vw, 3rem)" }}>{event.title}</h1>
@@ -606,15 +613,28 @@ export default function EventDetail() {
               </div>
 
               {user?.role === "buyer" && event.status === "approved" && (
-                <motion.button className="btn btn-gold"
-                  style={{ width: "100%", justifyContent: "center", fontSize: "0.9rem" }}
-                  onClick={() => setShowSeatModal(true)}
-                  whileTap={{ scale: 0.97 }} disabled={purchasing}>
-                  {supportsSeating && hasSeats
-                    ? isPitEvent ? "🎵 Select Zone" : "🎭 Select Your Seat"
-                    : event.price === 0 ? "🎟 Get Free Ticket" : "🎟 Buy Ticket"
-                  }
-                </motion.button>
+                <MagneticWrapper strength={15} style={{ display: 'block', width: '100%' }}>
+                  <motion.button 
+                    className={isExpired ? "btn" : "btn btn-gold"}
+                    style={{ 
+                      width: "100%", 
+                      justifyContent: "center", 
+                      fontSize: "0.9rem",
+                      ...(isExpired ? { opacity: 0.6, cursor: "not-allowed", backgroundColor: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" } : {})
+                    }}
+                    title={isExpired ? "This event has already ended. Ticket booking is no longer available." : ""}
+                    onClick={() => !isExpired && setShowSeatModal(true)}
+                    whileTap={!isExpired ? { scale: 0.97 } : {}} 
+                    disabled={purchasing || isExpired}
+                  >
+                    {isExpired 
+                      ? "Event Expired"
+                      : supportsSeating && hasSeats
+                        ? isPitEvent ? "🎵 Select Zone" : "🎭 Select Your Seat"
+                        : event.price === 0 ? "🎟 Get Free Ticket" : "🎟 Buy Ticket"
+                    }
+                  </motion.button>
+                </MagneticWrapper>
               )}
 
               {!user && (
@@ -668,7 +688,7 @@ export default function EventDetail() {
         ) : (
           <div>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: '20px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 14 }}>
-              <img src={event.image} alt="" style={{ width: 64, height: 52, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
+              <img src={highResImage} alt="" style={{ width: 64, height: 52, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
               <div>
                 <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 4 }}>{event.title}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -754,7 +774,7 @@ export default function EventDetail() {
       <Modal open={showSponsorModal} onClose={() => setShowSponsorModal(false)} title="Send Sponsorship Request" maxWidth={480}>
         <form onSubmit={handleSponsorSubmit}>
           <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: '14px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <img src={event.image} alt="" style={{ width: 56, height: 44, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
+            <img src={highResImage} alt="" style={{ width: 56, height: 44, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: 2 }}>{event.title}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>

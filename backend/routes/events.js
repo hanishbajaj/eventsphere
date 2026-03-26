@@ -78,9 +78,9 @@ router.post('/', authenticate, authorize('organizer', 'admin'), (req, res) => {
       if (parseFloat(priceStr) < 0) return res.status(400).json({ message: 'Price cannot be negative' });
     }
 
-    // Image URL check
-    if (image && image.trim() && !/^https?:\/\/.+/.test(image.trim()))
-      return res.status(400).json({ message: 'Image must be a valid URL starting with http:// or https://' });
+    // Image URL or Base64 check
+    if (image && image.trim() && !/^https?:\/\/.+/.test(image.trim()) && !/^data:image\/.+/.test(image.trim()))
+      return res.status(400).json({ message: 'Image must be a valid URL starting with http://, https://, or a data:image/' });
 
     const event = Events.create({
       id: uuidv4(),
@@ -89,7 +89,7 @@ router.post('/', authenticate, authorize('organizer', 'admin'), (req, res) => {
       venue: venue.trim(), address: address || venue,
       description: description || '',
       price: parseFloat(price) || 0,
-      image: image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80',
+      image: image || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1920&q=80',
       tags: tags || [],
       status: req.user.role === 'admin' ? 'approved' : 'pending',
       featured: false,

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { MagneticWrapper } from '../components/Interactive';
 
 const CATEGORIES = [
   { name: 'Concert / Music', icon: '🎵', color: '#d878d8' },
@@ -280,15 +281,15 @@ export default function Landing() {
               backgroundImage: 'url(https://images.unsplash.com/photo-1540039155733-5bb30b4a4d3d?w=1920&q=80)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              filter: 'brightness(0.24)',
+              filter: 'var(--hero-brightness)',
             }}
           />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(8,8,15,0.28) 0%, rgba(8,8,15,0.65) 54%, var(--bg-base) 100%)' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 70% 36%, rgba(201,168,76,0.08) 0%, transparent 72%)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'var(--hero-overlay)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 70% 36%, var(--gold-glow) 0%, var(--gold-glow-fade) 72%)' }} />
         </motion.div>
 
-        <div className="gradient-blob" style={{ width: 520, height: 520, top: -120, left: -210, background: 'rgba(201,168,76,0.05)' }} />
-        <div className="gradient-blob" style={{ width: 340, height: 340, bottom: 100, right: -100, background: 'rgba(92,140,224,0.05)' }} />
+        <div className="gradient-blob" style={{ width: 520, height: 520, top: -120, left: -210, background: 'var(--gold-glow)' }} />
+        <div className="gradient-blob" style={{ width: 340, height: 340, bottom: 100, right: -100, background: 'rgba(92,140,224,0.03)' }} />
 
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
           {HERO_PARTICLES.map((particle) => (
@@ -331,7 +332,7 @@ export default function Landing() {
                 inset: '-16% -8% auto -8%',
                 height: 280,
                 borderRadius: '50%',
-                background: 'linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.08) 25%, rgba(201,168,76,0.05) 50%, transparent 100%)',
+                background: 'linear-gradient(90deg, var(--gold-glow-fade) 0%, var(--gold-glow) 25%, var(--gold-glow) 50%, var(--gold-glow-fade) 100%)',
                 filter: 'blur(28px)',
                 opacity: 0.8,
                 y: waveParallax,
@@ -451,22 +452,26 @@ export default function Landing() {
               style={{ display: 'flex', gap: 16, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}
             >
               <Link to="/events">
-                <motion.button
-                  className="btn btn-gold btn-lg"
-                  whileHover={{ scale: 1.04, boxShadow: '0 0 22px var(--gold-glow)' }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  Explore Events →
-                </motion.button>
+                <MagneticWrapper strength={35}>
+                  <motion.button
+                    className="btn btn-gold btn-lg"
+                    whileHover={{ scale: 1.04, boxShadow: '0 0 22px var(--gold-glow)' }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    Explore Events →
+                  </motion.button>
+                </MagneticWrapper>
               </Link>
               <Link to="/register">
-                <motion.button
-                  className="btn btn-outline btn-lg"
-                  whileHover={{ scale: 1.04, boxShadow: '0 0 18px rgba(201,168,76,0.12)' }}
-                  whileTap={{ scale: 0.97 }}
-                >
-                  Organize Now
-                </motion.button>
+                <MagneticWrapper strength={25}>
+                  <motion.button
+                    className="btn btn-outline btn-lg"
+                    whileHover={{ scale: 1.04, boxShadow: '0 0 18px rgba(201,168,76,0.12)' }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    Organize Now
+                  </motion.button>
+                </MagneticWrapper>
               </Link>
             </motion.div>
           </div>
@@ -499,7 +504,7 @@ export default function Landing() {
               transform: 'translate(-50%, -50%)',
               width: 560, height: 560,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(201,168,76,0.11) 0%, rgba(92,140,224,0.06) 45%, transparent 72%)',
+              background: 'radial-gradient(circle, rgba(201,168,76,0.11) 0%, rgba(92,140,224,0.06) 45%, var(--gold-glow-fade) 72%)',
               filter: 'blur(24px)',
             }}
           />
@@ -728,7 +733,7 @@ export default function Landing() {
               top: '20%', bottom: '20%',
               left: 0,
               width: '40%',
-              background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.06), rgba(201,168,76,0.12), rgba(201,168,76,0.06), transparent)',
+              background: 'linear-gradient(90deg, var(--gold-glow-fade), rgba(201,168,76,0.06), rgba(201,168,76,0.12), rgba(201,168,76,0.06), var(--gold-glow-fade))',
               filter: 'blur(16px)',
               pointerEvents: 'none',
             }}
@@ -743,7 +748,7 @@ export default function Landing() {
               top: '10%', bottom: '10%',
               left: '48%',
               width: 2,
-              background: 'linear-gradient(to bottom, transparent, rgba(201,168,76,0.5), rgba(201,168,76,0.7), rgba(201,168,76,0.5), transparent)',
+              background: 'linear-gradient(to bottom, var(--gold-glow-fade), rgba(201,168,76,0.5), rgba(201,168,76,0.7), rgba(201,168,76,0.5), var(--gold-glow-fade))',
               filter: 'blur(3px)',
               transformOrigin: 'center',
             }}

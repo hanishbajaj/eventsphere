@@ -14,6 +14,12 @@ router.post('/purchase', authenticate, authorize('buyer'), (req, res) => {
     if (!event) return res.status(404).json({ message: 'Event not found' });
     if (event.status !== 'approved') return res.status(400).json({ message: 'Event is not available' });
 
+    // Validate if event has expired
+    const eventDateTime = new Date(event.date);
+    if (eventDateTime < new Date()) {
+      return res.status(400).json({ message: 'Cannot book ticket. Event date has already passed.' });
+    }
+
     let seatInfo = null;
 
     // Handle pit/zone booking (concerts/festivals)

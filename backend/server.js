@@ -1,27 +1,32 @@
 // server.js — EventSphere API Entry Point
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { seedDatabase } = require('./models/seed');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { seedDatabase } = require("./models/seed");
 
-const authRoutes    = require('./routes/auth');
-const eventRoutes   = require('./routes/events');
-const ticketRoutes  = require('./routes/tickets');
-const sponsorRoutes = require('./routes/sponsors');
-const userRoutes    = require('./routes/users');
-const paymentRoutes = require('./routes/payments');
-const reviewRoutes  = require('./routes/reviews');
+const authRoutes = require("./routes/auth");
+const eventRoutes = require("./routes/events");
+const ticketRoutes = require("./routes/tickets");
+const sponsorRoutes = require("./routes/sponsors");
+const userRoutes = require("./routes/users");
+const paymentRoutes = require("./routes/payments");
+const reviewRoutes = require("./routes/reviews");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Catch unhandled promise rejections (e.g. background PDF generation)
-process.on('unhandledRejection', (reason) => {
-  console.error('[UnhandledRejection]', reason);
+process.on("unhandledRejection", (reason) => {
+  console.error("[UnhandledRejection]", reason);
 });
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true }));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,39 +37,43 @@ app.use((req, _res, next) => {
 });
 
 // Routes
-app.use('/api/auth',     authRoutes);
-app.use('/api/events',   eventRoutes);
-app.use('/api/tickets',  ticketRoutes);
-app.use('/api/sponsors', sponsorRoutes);
-app.use('/api/users',    userRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/reviews',  reviewRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/sponsors", sponsorRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // Health check
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get("/api/health", (_req, res) =>
+  res.json({ status: "ok", timestamp: new Date().toISOString() })
+);
 
 // Global error handler
 app.use((err, _req, res, _next) => {
   console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || 'Internal server error' });
+  res
+    .status(err.status || 500)
+    .json({ message: err.message || "Internal server error" });
 });
 
-const pool = require('./config/db');
-const initDB = require('./config/initDB');
+const pool = require("./config/db");
+const initDB = require("./config/initDB");
 
 // Start
 app.listen(PORT, async () => {
   try {
-    await pool.query('SELECT 1');
-    console.log('✅ MySQL connected');
-    await initDB();
-  } catch(err) {
-    console.error('❌ MySQL connection failed:', err.message);
+    await pool.query("SELECT 1");
+    console.log("✅ MySQL connected");
+  } catch (err) {
+    console.error("❌ MySQL connection failed:");
+    console.error(err);
   }
-  
+
   // Note: If you want to automatically seed from server.js, you'd need a MySQL version of seedDatabase,
   // but it's conventionally done via running schema.sql and seed.sql manually.
-  // await seedDatabase(); 
-  
+  // await seedDatabase();
+
   console.log(`🚀 EventSphere API running on http://localhost:${PORT}`);
 });

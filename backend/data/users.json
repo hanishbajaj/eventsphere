@@ -1,44 +1,68 @@
 [
   {
-    "id": "4897898a-f902-4ba3-a564-b74fc70d415a",
+    "id": "445d1852-1e45-430f-9366-783573ecc3c1",
     "name": "Admin User",
     "email": "admin@eventsphere.com",
-    "password": "$2a$10$fTKijYRU9htg7crWgEHeyeScYncjglGUWprfw5Benvr5eY.E48JUu",
+    "password": "$2a$10$/XTvtNUMOLBwhHCIGlMv.e.wTe3B0JucPdqtM6cE843F980SwxMie",
     "role": "admin",
     "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=AU&backgroundColor=c9a84c",
-    "createdAt": "2026-03-19T16:01:43.052Z",
-    "updatedAt": "2026-03-19T16:01:43.052Z"
+    "createdAt": "2026-03-27T06:21:16.091Z",
+    "updatedAt": "2026-03-27T06:21:16.091Z"
   },
   {
-    "id": "81b8d619-40f3-4e4f-b316-b090535a2c2c",
+    "id": "1b7c6ced-d63a-4b66-982f-ec98e134fcf4",
     "name": "Alex Organizer",
     "email": "organizer@eventsphere.com",
-    "password": "$2a$10$5iJTaHmzoj9k4e8pjCsV0ev0OhyxrFt9TNPg7GQhOliGHAg3rusaK",
+    "password": "$2a$10$9sWgAvV7VaN8GJdVmuN7OukJjuSSRm/nxfJyTeHkeD9wlhERt8Spa",
     "role": "organizer",
     "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=AO&backgroundColor=4c7bc9",
-    "createdAt": "2026-03-19T16:01:43.055Z",
-    "updatedAt": "2026-03-19T16:01:43.055Z"
+    "createdAt": "2026-03-27T06:21:16.092Z",
+    "updatedAt": "2026-03-27T06:21:16.092Z"
   },
   {
-    "id": "0d33d3e0-a0ae-447c-8ef7-feca2297371f",
+    "id": "0320c6c8-67c6-467a-9c4b-a8ac6684a7ca",
     "name": "Sam Sponsor",
     "email": "sponsor@eventsphere.com",
-    "password": "$2a$10$HDk.ZbPhIS6X2DzGeoRY2.GXLPBjH.46K/QBscXUGfuQPp1jbpa46",
+    "password": "$2a$10$4GZ.8vutz22IGvEFGe787ueyoeYW2VvEk0GykL.naVXOKT5GMVMlW",
     "role": "sponsor",
     "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=SS&backgroundColor=4cc97b",
     "company": "TechCorp Inc.",
     "budget": 50000,
-    "createdAt": "2026-03-19T16:01:43.056Z",
-    "updatedAt": "2026-03-19T16:01:43.056Z"
+    "createdAt": "2026-03-27T06:21:16.093Z",
+    "updatedAt": "2026-03-27T06:21:16.093Z"
   },
   {
-    "id": "c6d9e571-66b8-46fe-abe4-cef21fc323fe",
+    "id": "395d5821-cd87-4e7a-8c9e-697cce008f5f",
     "name": "Jamie Buyer",
     "email": "buyer@eventsphere.com",
-    "password": "$2a$10$OdaKX1aS5oPNwyGbIm8fS.0Y2ltMo2Ltwqi2Xd2xjcm48URgBc2V6",
+    "password": "$2a$10$U2PNIUdDkCuQ87CcyYL6L.FtIKh9/6njeZxw9W/HJe/hFtK5Z7qxq",
     "role": "buyer",
     "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=JB&backgroundColor=c94c4c",
-    "createdAt": "2026-03-19T16:01:43.057Z",
-    "updatedAt": "2026-03-19T16:01:43.057Z"
+    "createdAt": "2026-03-27T06:21:16.093Z",
+    "updatedAt": "2026-03-27T06:21:16.093Z"
+  },
+  {
+    "id": "9dadc51e-b5d3-4ff9-89a2-6e70ea78cd97",
+    "name": "Manit Chellaramani",
+    "email": "manit@gmail.com",
+    "password": "$2a$12$XbwmpfCRA/cLLQ/1tMGHg.1W.l0F1Eme1FBBzgA0To7lFypBHYJ82",
+    "role": "organizer",
+    "company": null,
+    "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=Manit%20Chellaramani&backgroundColor=c9a84c",
+    "banned": false,
+    "createdAt": "2026-03-27T08:16:48.528Z",
+    "updatedAt": "2026-03-27T08:16:48.528Z"
+  },
+  {
+    "id": "b62ee3c2-b9cb-4ece-a1b6-9c3ac213996d",
+    "name": "Mohit Chawla",
+    "email": "mohit@example.com",
+    "password": "$2a$12$ot.IvA7sxmO9PaU/qr7w..KzszUPcrqwhSdTeoAaXy5nF7NoXFz3W",
+    "role": "buyer",
+    "company": null,
+    "avatar": "https://api.dicebear.com/7.x/initials/svg?seed=Mohit%20Chawla&backgroundColor=c9a84c",
+    "banned": false,
+    "createdAt": "2026-03-27T08:19:32.892Z",
+    "updatedAt": "2026-03-27T08:19:32.892Z"
   }
 ]

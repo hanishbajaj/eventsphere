@@ -262,7 +262,7 @@ function StarDisplay({ rating, size = 16 }) {
   );
 }
 
-function ReviewsSection({ eventId, user }) {
+function ReviewsSection({ eventId, user, canReview }) {
   const toast = useToast();
   const [reviews, setReviews] = useState([]);
   const [newRating, setNewRating] = useState(0);
@@ -309,7 +309,7 @@ function ReviewsSection({ eventId, user }) {
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ marginTop: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h3 style={{ fontSize: '1.2rem' }}>Reviews & Ratings</h3>
-        {user && (
+        {canReview && (
           <motion.button className="btn btn-outline btn-sm" onClick={() => setShowForm(f => !f)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             {showForm ? 'Cancel' : 'Write a Review'}
           </motion.button>
@@ -400,6 +400,7 @@ export default function EventDetail() {
   const [sponsorErrors, setSponsorErrors] = useState({});
   const [sponsorLoading, setSponsorLoading] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [hasTicket, setHasTicket] = useState(false);
 
   useEffect(() => {
     api.getEvent(id)
@@ -407,6 +408,16 @@ export default function EventDetail() {
       .catch(() => toast("Event not found", "error"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (user && user.role === 'buyer') {
+      api.getMyTickets()
+        .then(tickets => {
+          setHasTicket(tickets.some(t => t.eventId === id));
+        })
+        .catch(err => console.error(err));
+    }
+  }, [user, id]);
 
   // Called after seat/zone selected — fetches clientSecret then opens Stripe payment modal
   const handleSeatConfirmed = async (seatSelection) => {
@@ -494,8 +505,12 @@ export default function EventDetail() {
   const isExpired = date < new Date();
   const catClass = CATEGORY_CLASSES[event.category] || "badge-gold";
   const hasSeats = event.seats?.length > 0;
-  const supportsSeating = SEATED_CATEGORIES.includes(event.category);
-  const isPitEvent = PIT_CATEGORIES.includes(event.category);
+  const supportsSeating = event.category_type === 'custom'
+    ? event.seat_type === 'seat_selection_system'
+    : SEATED_CATEGORIES.includes(event.category);
+  const isPitEvent = event.category_type === 'custom'
+    ? event.seat_type === 'pit_system'
+    : PIT_CATEGORIES.includes(event.category);
   const googleMapsQuery = encodeURIComponent(event.address || event.venue);
 
   const highResImage = event.image 
@@ -521,7 +536,7 @@ export default function EventDetail() {
           {/* ── Main content ── */}
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-              <span className={`badge ${catClass}`}>{event.category}</span>
+              <span className={`badge ${catClass}`}>{event.category_type === 'custom' ? event.custom_category_name : event.category}</span>
               {event.featured && <span className="badge badge-gold">⭐ Featured</span>}
               <span className={`badge ${event.status === "approved" ? "badge-green" : "badge-orange"}`}>{event.status}</span>
               {isExpired && <span className="badge" style={{ background: "rgba(224,92,92,0.15)", color: "var(--red)", border: "1px solid rgba(224,92,92,0.3)" }}>EXPIRED</span>}
@@ -581,7 +596,7 @@ export default function EventDetail() {
               </div>
             </div>
 
-            <ReviewsSection eventId={id} user={user} />
+            <ReviewsSection eventId={id} user={user} canReview={user?.role === 'buyer' && (hasTicket || !!ticket) && isExpired} />
           </motion.div>
 
           {/* ── Ticket sidebar ── */}

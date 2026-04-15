@@ -62,44 +62,50 @@ function AIRecommendations({ events }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-      style={{ marginBottom: 48 }}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      style={{ marginBottom: 64, position: 'relative' }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, gap: 16 }}>
         <div>
-          <div style={{ color: 'var(--gold)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>&#10024;</span> {hasHistory ? 'Recommended For You' : 'Trending Now'}
-          </div>
-          <h3 style={{ fontWeight: 400, fontSize: '1.4rem' }}>
-            {hasHistory ? 'Recommended For You' : 'Trending Events'}
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: 4 }}>
-            {hasHistory ? 'Events curated based on your interests and activity' : 'Popular events you might enjoy'}
-          </p>
+          <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+            style={{ color: 'var(--gold)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '1.2rem', filter: 'drop-shadow(0 0 8px var(--gold))' }}>✨</span> {hasHistory ? 'Recommended For You' : 'Trending Now'}
+          </motion.div>
+          <motion.h3 initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} style={{ fontWeight: 500, fontSize: '1.8rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            {hasHistory ? 'Personalized Picks' : 'Popular Highlights'}
+          </motion.h3>
         </div>
-        <div className="carousel-nav">
-          <button className="carousel-btn" onClick={() => scroll(-1)}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="15 18 9 12 15 6"/></svg>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn-ghost" style={{ width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }} onClick={() => scroll(-1)}>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <button className="carousel-btn" onClick={() => scroll(1)}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><polyline points="9 18 15 12 9 6"/></svg>
+          <button className="btn-ghost" style={{ width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }} onClick={() => scroll(1)}>
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
       </div>
 
-      <div className="ai-carousel" ref={carouselRef}>
+      <motion.div 
+         ref={carouselRef}
+         whileTap={{ cursor: "grabbing" }}
+         style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, paddingLeft: 4, scrollbarWidth: 'none', msOverflowStyle: 'none', scrollSnapType: 'x mandatory', cursor: 'grab' }}
+      >
         {recommendations.map((ev, i) => (
           <motion.div
             key={ev.id}
-            className="ai-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 * i }}
-            whileHover={{ scale: 1.04, y: -6 }}
+            className="ai-card card-glass"
+            style={{
+              minWidth: 320, maxWidth: 320, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0, scrollSnapAlign: 'start', cursor: 'pointer'
+            }}
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            whileInView={{ opacity: 1, scale: 1, y: 0 }}
+            viewport={{ once: true, margin: "0px -50px" }}
+            transition={{ delay: 0.1 + (i * 0.08), duration: 0.6, type: "spring", bounce: 0.3 }}
+            whileHover={{ scale: 1.03, y: -8, boxShadow: '0 20px 40px rgba(0,0,0,0.4), 0 0 20px var(--gold-glow-strong)' }}
             onClick={() => {
-              // Track view for recommendations
               const prev = JSON.parse(localStorage.getItem('es_viewed_events') || '[]');
               if (!prev.find(p => p.id === ev.id)) {
                 prev.push({ id: ev.id, category: ev.category, date: new Date().toISOString() });
@@ -108,30 +114,35 @@ function AIRecommendations({ events }) {
               navigate(`/events/${ev.id}`);
             }}
           >
-            <div className="ai-card-img-wrap">
-              <img src={ev.image} alt={ev.title} className="ai-card-img" />
-              <div className="ai-badge">&#10024; AI Pick</div>
+            <div style={{ position: 'relative', height: 180, overflow: 'hidden' }}>
+              <motion.img 
+                src={ev.image} alt={ev.title} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                whileHover={{ scale: 1.08 }} transition={{ duration: 0.6 }}
+              />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-card) 0%, transparent 60%)' }} />
+              <div style={{ position: 'absolute', top: 12, left: 12, background: 'linear-gradient(135deg, var(--gold), var(--gold-light))', color: 'var(--text-inverse)', padding: '4px 12px', borderRadius: 100, fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', boxShadow: '0 4px 12px rgba(201,168,76,0.3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>✨</span> AI Pick
+              </div>
             </div>
-            <div className="ai-card-body">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span className="badge badge-gold" style={{ fontSize: '0.65rem' }}>{ev.category}</span>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--gold)', fontSize: '0.95rem' }}>
+            <div style={{ padding: '20px 24px', flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span className="badge badge-gold" style={{ fontSize: '0.65rem' }}>{ev.category_type === 'custom' ? ev.custom_category_name : ev.category}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--gold)', fontSize: '1.05rem' }}>
                   {ev.price === 0 ? 'Free' : formatCurrency(ev.price)}
                 </span>
               </div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem', marginBottom: 6, lineHeight: 1.3 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem', marginBottom: 8, lineHeight: 1.3, color: 'var(--text-primary)' }}>
                 {ev.title}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span>{new Date(ev.date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                <span>{ev.venue}</span>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{new Date(ev.date).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{ev.venue}</div>
               </div>
             </div>
           </motion.div>
         ))}
-      </div>
-
-      <div className="divider divider-gold" style={{ marginTop: 16 }} />
+      </motion.div>
     </motion.div>
   );
 }
@@ -204,30 +215,41 @@ export default function Events() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
-      {/* Header */}
-      <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '48px 0 32px' }}>
-        <div className="container">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div style={{ color: 'var(--gold)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 12 }}>
-              Discover
-            </div>
-            <h1 style={{ fontWeight: 300, marginBottom: 24 }}>All Events</h1>
+      {/* Immersive Hero Header */}
+      <div style={{ position: 'relative', overflow: 'hidden', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          <div className="gradient-blob" style={{ background: 'var(--gold-glow-strong)', width: '60vw', height: '60vw', top: '-30vw', left: '-10vw', opacity: 0.5 }} />
+          <div className="gradient-blob" style={{ background: 'rgba(92,140,224,0.15)', width: '50vw', height: '50vw', right: '-15vw', bottom: '-20vw', opacity: 0.5 }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'var(--hero-overlay)', pointerEvents: 'none' }} />
+        </div>
+        <div className="container" style={{ position: 'relative', zIndex: 1, padding: '80px 24px 60px' }}>
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
+            <motion.div 
+               initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 0.5 }}
+               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', background: 'rgba(201,168,76,0.1)', border: '1px solid var(--border-gold)', borderRadius: 100, color: 'var(--gold)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 20 }}>
+              <span style={{ fontSize: '1rem' }}>✨</span> Discover
+            </motion.div>
+            <h1 style={{ fontWeight: 400, marginBottom: 24, fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', lineHeight: 1.1 }}>
+              Find Your Next <span style={{ color: 'var(--gold)', fontStyle: 'italic' }}>Experience</span>
+            </h1>
 
-            {/* Search */}
-            <div style={{ position: 'relative', maxWidth: 480 }}>
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }}>
+            {/* Premium Search */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }} style={{ position: 'relative', maxWidth: 480, margin: '0 auto' }}>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }}>
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input
                 type="text"
                 className="form-input"
-                placeholder="Search events, venues..."
+                placeholder="Search events, venues, organizers..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: 44 }}
+                style={{ padding: '16px 20px 16px 52px', fontSize: '1rem', borderRadius: 100, background: 'var(--bg-elevated)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', transition: 'all 0.3s ease' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--gold)'; e.target.style.boxShadow = '0 0 20px rgba(201,168,76,0.15), var(--shadow-lg)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'var(--shadow-lg)'; }}
               />
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -238,18 +260,27 @@ export default function Events() {
 
         {/* Filters + view toggle */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', background: 'var(--bg-elevated)', padding: 6, borderRadius: 100, border: '1px solid var(--border-light)' }}>
             {CATEGORIES.map(cat => (
-              <motion.button
+              <button
                 key={cat}
                 onClick={() => setCategory(cat)}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className={`btn btn-sm ${activeCategory === cat ? 'btn-gold' : 'btn-ghost'}`}
-                style={{ borderRadius: 100 }}
+                style={{ 
+                  position: 'relative', padding: '8px 20px', fontSize: '0.85rem', fontWeight: 500, 
+                  color: activeCategory === cat ? 'var(--text-inverse)' : 'var(--text-secondary)', 
+                  background: 'transparent', border: 'none', borderRadius: 100, zIndex: 1, 
+                  transition: 'color 0.3s ease', cursor: 'pointer', outline: 'none' 
+                }}
               >
+                {activeCategory === cat && (
+                  <motion.div
+                    layoutId="activeFilterBg"
+                    style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, var(--gold), var(--gold-light))', borderRadius: 100, zIndex: -1, boxShadow: '0 4px 12px rgba(201,168,76,0.3)' }}
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
                 {cat}
-              </motion.button>
+              </button>
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -299,18 +330,25 @@ export default function Events() {
               view === 'list' ? (
                 <motion.div
                   key={event.id}
-                  className="card"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  style={{ display: 'flex', gap: 20, padding: 0, overflow: 'hidden', cursor: 'pointer' }}
+                  className="card card-glass"
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.1, margin: "0px 0px -20px 0px" }}
+                  transition={{ duration: 0.5, delay: (i % 5) * 0.08, ease: "easeOut" }}
+                  whileHover={{ x: 8, backgroundColor: 'var(--bg-hover)', borderLeft: '4px solid var(--gold)' }}
+                  style={{ display: 'flex', gap: 20, padding: 0, overflow: 'hidden', cursor: 'pointer', borderLeft: '4px solid transparent' }}
                   onClick={() => window.location.href = `/events/${event.id}`}
                 >
-                  <img src={event.image} alt={event.title} style={{ width: 160, height: 120, objectFit: 'cover', flexShrink: 0 }} />
+                  <motion.img 
+                    src={event.image} alt={event.title} 
+                    style={{ width: 160, height: 120, objectFit: 'cover', flexShrink: 0 }} 
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.5 }}
+                  />
                   <div style={{ padding: '20px 20px 20px 0', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <span className="badge badge-gold">{event.category}</span>
+                        <span className="badge badge-gold">{event.category_type === 'custom' ? event.custom_category_name : event.category}</span>
                         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--gold)', fontSize: '1.1rem' }}>
                           {event.price === 0 ? 'Free' : formatCurrency(event.price)}
                         </span>

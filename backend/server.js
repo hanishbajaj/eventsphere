@@ -47,8 +47,20 @@ app.use((err, _req, res, _next) => {
   res.status(err.status || 500).json({ message: err.message || 'Internal server error' });
 });
 
+const pool = require('./config/db');
+
 // Start
 app.listen(PORT, async () => {
-  await seedDatabase();
+  try {
+    await pool.query('SELECT 1');
+    console.log('✅ MySQL connected');
+  } catch(err) {
+    console.error('❌ MySQL connection failed:', err.message);
+  }
+  
+  // Note: If you want to automatically seed from server.js, you'd need a MySQL version of seedDatabase,
+  // but it's conventionally done via running schema.sql and seed.sql manually.
+  // await seedDatabase(); 
+  
   console.log(`🚀 EventSphere API running on http://localhost:${PORT}`);
 });

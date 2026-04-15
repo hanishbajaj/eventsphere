@@ -1,16 +1,16 @@
 // routes/tickets.js
 const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
-const { Tickets, Events } = require('../models/db');
+const { findById, findAll, create, updateById } = require('../models/db');
 const { authenticate, authorize } = require('../middleware/auth');
 const generateTicketPDF = require('../utils/generateTicketPDF');
 const { uploadTicketPDF, getExpectedPdfUrl } = require('../utils/supabase');
 
 // POST /api/tickets/purchase
-router.post('/purchase', authenticate, authorize('buyer'), (req, res) => {
+router.post('/purchase', authenticate, authorize('buyer'), async (req, res) => {
   try {
     const { eventId, seatId, zone, quantity = 1 } = req.body;
-    const event = Events.findById(eventId);
+    const event = await findById('events', eventId);
     if (!event) return res.status(404).json({ message: 'Event not found' });
     if (event.status !== 'approved') return res.status(400).json({ message: 'Event is not available' });
 
@@ -21,38 +21,37 @@ router.post('/purchase', authenticate, authorize('buyer'), (req, res) => {
     }
 
     let seatInfo = null;
+    let eventSeats = typeof event.seats === 'string' ? JSON.parse(event.seats) : event.seats;
 
     // Handle pit/zone booking (concerts/festivals)
     if (zone) {
-      const pitIndex = event.seats.findIndex(s => s.id === zone);
+      const pitIndex = eventSeats.findIndex(s => s.id === zone);
       if (pitIndex === -1) return res.status(400).json({ message: 'Zone not found' });
-      const pit = event.seats[pitIndex];
+      const pit = eventSeats[pitIndex];
       if (pit.booked + quantity > pit.capacity)
         return res.status(400).json({ message: 'Not enough spots in this zone' });
 
-      const updatedSeats = [...event.seats];
-      updatedSeats[pitIndex] = { ...pit, booked: pit.booked + quantity };
-      Events.updateById(eventId, {
-        seats: updatedSeats,
+      eventSeats[pitIndex] = { ...pit, booked: pit.booked + quantity };
+      await updateById('events', eventId, {
+        seats: eventSeats,
         ticketsSold: event.ticketsSold + quantity,
-        revenue: event.revenue + event.price * quantity,
+        revenue: parseFloat(event.revenue) + (parseFloat(event.price) * quantity),
       });
       seatInfo = { zone: pit.zone, quantity };
     } else if (seatId) {
       // Handle individual seat booking
-      const seatIndex = event.seats.findIndex(s => s.id === seatId);
+      const seatIndex = eventSeats.findIndex(s => s.id === seatId);
       if (seatIndex === -1) return res.status(400).json({ message: 'Seat not found' });
-      if (event.seats[seatIndex].status === 'booked')
+      if (eventSeats[seatIndex].status === 'booked')
         return res.status(409).json({ message: 'Seat already booked' });
 
-      const updatedSeats = [...event.seats];
-      updatedSeats[seatIndex] = { ...updatedSeats[seatIndex], status: 'booked' };
-      Events.updateById(eventId, {
-        seats: updatedSeats,
+      eventSeats[seatIndex] = { ...eventSeats[seatIndex], status: 'booked' };
+      await updateById('events', eventId, {
+        seats: eventSeats,
         ticketsSold: event.ticketsSold + 1,
-        revenue: event.revenue + event.price,
+        revenue: parseFloat(event.revenue) + parseFloat(event.price),
       });
-      seatInfo = { seatId, row: event.seats[seatIndex].row, number: event.seats[seatIndex].number };
+      seatInfo = { seatId, row: eventSeats[seatIndex].row, number: eventSeats[seatIndex].number };
     } else {
       return res.status(400).json({ message: 'Seat ID or zone required' });
     }
@@ -67,71 +66,71 @@ router.post('/purchase', authenticate, authorize('buyer'), (req, res) => {
       ...seatInfo,
     });
 
-    // Compute the deterministic Supabase PDF URL before creating the ticket
     const shortId = ticketId.substring(0, 8).toUpperCase();
     const fileName = `ES_${shortId}.pdf`;
     const pdfUrl = getExpectedPdfUrl(fileName);
 
-    const ticket = Tickets.create({
+    const ticket = await create('tickets', {
       id: ticketId,
       eventId,
       eventTitle: event.title,
       eventDate: event.date,
       eventVenue: event.venue,
+      eventCategory: event.category || null,
+      eventImage: event.image || null,
       buyerId: req.user.id,
       buyerName: req.user.name,
-      ...seatInfo,
-      price: event.price * (quantity || 1),
-      qrData,
-      pdfUrl,
+      row: seatInfo.row || null,
+      number: seatInfo.number || null,
+      zone: seatInfo.zone || null,
+      quantity,
+      price: parseFloat(event.price) * (quantity || 1),
       status: 'active',
+      pdfUrl,
+      paymentIntentId: null, // Depending on if payments are routed differently
     });
 
-    // Respond immediately with pdfUrl already set (URL is deterministic)
     res.status(201).json({ ticket, qrData });
 
-    // Generate + upload the PDF in the background (fire-and-forget)
+    // Background PDF generation
     const qrTarget = pdfUrl || `ticket-${ticketId}`;
-    console.log(`[PDF] Starting background generation for ${shortId}...`);
     generateTicketPDF(ticket, qrTarget)
-      .then((pdfBuffer) => {
-        console.log(`[PDF] ${shortId} generated OK, ${pdfBuffer.length} bytes. Uploading...`);
-        return uploadTicketPDF(fileName, pdfBuffer);
-      })
-      .then((uploadedUrl) => {
-        if (uploadedUrl) {
-          console.log(`[PDF] Ticket ${shortId} uploaded: ${uploadedUrl}`);
-        } else {
-          console.error(`[PDF] ${shortId} upload returned null`);
-        }
-      })
-      .catch((err) => {
-        console.error(`[PDF] ${shortId} generation/upload failed:`, err.message);
-        console.error(err.stack);
-      });
+      .then((pdfBuffer) => uploadTicketPDF(fileName, pdfBuffer))
+      .catch((err) => console.error(`[PDF] generation failed:`, err.message));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // GET /api/tickets/my — buyer's tickets
-router.get('/my', authenticate, authorize('buyer'), (req, res) => {
-  const tickets = Tickets.findAll({ buyerId: req.user.id });
-  res.json(tickets);
+router.get('/my', authenticate, authorize('buyer'), async (req, res) => {
+  try {
+    const tickets = await findAll('tickets', { buyerId: req.user.id });
+    res.json(tickets);
+  } catch(err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// GET /api/tickets/:id — ticket detail (for QR scan page)
-router.get('/:id', (req, res) => {
-  const ticket = Tickets.findById(req.params.id);
-  if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
-  const event = Events.findById(ticket.eventId);
-  res.json({ ...ticket, eventImage: event?.image || null, eventCategory: event?.category || null });
+// GET /api/tickets/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const ticket = await findById('tickets', req.params.id);
+    if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+    res.json(ticket);
+  } catch(err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // GET /api/tickets/event/:eventId — organizer sees tickets for their event
-router.get('/event/:eventId', authenticate, authorize('organizer', 'admin'), (req, res) => {
-  const tickets = Tickets.findAll({ eventId: req.params.eventId });
-  res.json(tickets);
+router.get('/event/:eventId', authenticate, authorize('organizer', 'admin'), async (req, res) => {
+  try {
+    const tickets = await findAll('tickets', { eventId: req.params.eventId });
+    res.json(tickets);
+  } catch(err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

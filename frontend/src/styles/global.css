@@ -1401,13 +1401,18 @@ select.form-input { cursor: pointer; }
 }
 .poster-category {
   display: inline-block;
-  padding: 4px 14px;
+  height: 24px;
+  line-height: 22px; /* 24px - 2px for border */
+  padding: 0 16px;
   border: 1px solid var(--gold);
-  border-radius: 100px;
+  border-radius: 20px;
   color: var(--gold);
-  font-size: 0.7rem;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 1px;
+  text-align: center;
+  box-sizing: border-box;
 }
 .poster-brand {
   position: absolute;

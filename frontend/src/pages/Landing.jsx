@@ -41,10 +41,10 @@ const TESTIMONIALS = [
 ];
 
 const STATS = [
-  { value: 50000, suffix: '+', label: 'Tickets Sold' },
-  { value: 1200, suffix: '', label: 'Events Listed' },
-  { value: 340, suffix: '', label: 'Sponsors' },
-  { value: 98, suffix: '%', label: 'Satisfaction' },
+  // { value: 50000, suffix: '+', label: 'Tickets Sold' },
+  // { value: 1200, suffix: '', label: 'Events Listed' },
+  // { value: 340, suffix: '', label: 'Sponsors' },
+  // { value: 98, suffix: '%', label: 'Satisfaction' },
 ];
 
 const FEATURED_EVENTS = [

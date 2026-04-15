@@ -1,5 +1,7 @@
 // pages/organizer/OrganizerDashboard.jsx
 import { useState, useEffect, useCallback, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashLayout from '../../components/DashLayout';
 import Modal from '../../components/Modal';
@@ -10,11 +12,11 @@ import FieldError from '../../components/FieldError';
 import { validateText, validateAmount, validateDate, validateUrl, validateDescription, numericInputProps } from '../../utils/validation';
 import { formatCurrency } from '../../utils/currency';
 
-const CATEGORIES = ['Concert / Music', 'Sports', 'Conference', 'Workshop', 'Theater', 'Festival', 'Webinar', 'Charity Gala'];
+const CATEGORIES = ['Concert / Music', 'Sports', 'Conference', 'Workshop', 'Theater', 'Festival', 'Webinar', 'Charity Gala', 'Other'];
 
 function EventForm({ initial, onSave, onCancel, loading }) {
   const [form, setForm] = useState(initial || {
-    title: '', category: 'Conference', date: '', endDate: '',
+    title: '', category: 'Conference', customCategoryName: '', seatType: '', date: '', endDate: '',
     venue: '', address: '', description: '', price: '', image: '', tags: '', seatCount: 40
   });
   const [errors, setErrors] = useState({});
@@ -49,6 +51,17 @@ function EventForm({ initial, onSave, onCancel, loading }) {
     const allFields = [...requiredFields, ...optionalFields];
     setTouched(Object.fromEntries(allFields.map(f => [f, true])));
     const errs = Object.fromEntries(allFields.map(f => [f, validateField(f, form[f])]));
+    if (form.category === 'Other') {
+      if (!form.customCategoryName || form.customCategoryName.trim().length === 0) {
+        errs.customCategoryName = 'Custom category name is required';
+      } else if (form.customCategoryName.length > 50) {
+        errs.customCategoryName = 'Maximum 50 characters allowed';
+      }
+
+      if (!form.seatType) {
+        errs.seatType = 'Seat selection type is required';
+      }
+    }
     setErrors(errs);
     if (Object.values(errs).some(Boolean)) return;
     onSave(form);
@@ -68,10 +81,52 @@ function EventForm({ initial, onSave, onCancel, loading }) {
         </div>
         <div className="form-group">
           <label className="form-label">Category *</label>
-          <select required className="form-input" value={form.category} onChange={e => set('category', e.target.value)}>
+          <select required className="form-input" value={form.category} onChange={e => {
+            set('category', e.target.value);
+            if (e.target.value !== 'Other') {
+              set('customCategoryName', '');
+              set('seatType', '');
+            }
+          }}>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+        <AnimatePresence>
+          {form.category === 'Other' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, scaleY: 0.9 }}
+              animate={{ opacity: 1, height: 'auto', scaleY: 1 }}
+              exit={{ opacity: 0, height: 0, scaleY: 0.9 }}
+              transition={{ duration: 0.3 }}
+              style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, overflow: 'hidden' }}
+            >
+              <div className="form-group">
+                <label className="form-label">Custom Category Name *</label>
+                <input
+                  className={`form-input ${errors.customCategoryName ? 'error' : ''}`}
+                  value={form.customCategoryName}
+                  onChange={e => set('customCategoryName', e.target.value)}
+                  placeholder="e.g. Hackathon"
+                  maxLength={50}
+                />
+                <FieldError error={errors.customCategoryName} />
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                  Use this option if your category is not listed
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Seat Selection Type *</label>
+                <select className={`form-input ${errors.seatType ? 'error' : ''}`} value={form.seatType} onChange={e => set('seatType', e.target.value)}>
+                  <option value="" disabled>Select seat type...</option>
+                  <option value="pit_system">Pit System (Standing zones)</option>
+                  <option value="seat_selection_system">Seat Selection System (Specific seats)</option>
+                  <option value="normal_booking">Normal Booking (No seats allocation)</option>
+                </select>
+                <FieldError error={errors.seatType} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="form-group">
           <label className="form-label">Ticket Price (₹)</label>
           <input type="text" inputMode="decimal"
@@ -216,7 +271,53 @@ function PosterGenerator({ events }) {
   const [generated, setGenerated] = useState(false);
   const canvasRef = useRef(null);
 
+  // New States for Enhancements
+  const [bgImage, setBgImage] = useState(null);
+  const [bgOverlay, setBgOverlay] = useState(50);
+  const [logos, setLogos] = useState([]);
+  const [logoPosition, setLogoPosition] = useState('bottom');
+  const [downloadFormat, setDownloadFormat] = useState('png');
+  const [downloadQuality, setDownloadQuality] = useState('high');
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const toast = useToast();
+
   const set = (k, v) => setPosterData(p => ({ ...p, [k]: v }));
+
+  // Background upload via FileReader
+  const handleBgUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Background image must be less than 5MB', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => setBgImage(event.target.result);
+    reader.onerror = () => toast('File upload failed. Please try again.', 'error');
+    reader.readAsDataURL(file);
+  };
+
+  // Multiple logo uploads
+  const handleLogoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    if (logos.length + files.length > 5) {
+      toast('Maximum 5 sponsor logos allowed', 'error');
+      return;
+    }
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLogos(prev => [...prev, { id: Date.now() + Math.random(), dataUrl: event.target.result }]);
+      };
+      reader.onerror = () => toast('File upload failed. Please try again.', 'error');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeLogo = (id) => setLogos(logos.filter(l => l.id !== id));
 
   // Auto-fill from existing event
   const handleEventSelect = (e) => {
@@ -229,149 +330,336 @@ function PosterGenerator({ events }) {
         category: ev.category || 'Conference',
         style: posterData.style,
       });
+      if (ev.image) setBgImage(ev.image);
     }
   };
 
   const handleGenerate = () => setGenerated(true);
 
-  const handleDownload = () => {
+  // New Download flow with html2canvas and jspdf
+  const handleDownload = async () => {
     const el = canvasRef.current;
     if (!el) return;
-    // Use html2canvas-like approach: render to a data URL via SVG foreignObject
-    const { width, height } = el.getBoundingClientRect();
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml"
-            style="width:${width}px;height:${height}px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px;
-            background:${posterData.style === 'concert' ? 'linear-gradient(135deg,#1a0a2e,#2d1b69,#1a0a2e)' : posterData.style === 'conference' ? 'linear-gradient(135deg,#0a1628,#1b2d50,#0a1628)' : posterData.style === 'festival' ? 'linear-gradient(135deg,#2e0a1a,#692d1b,#2e0a1a)' : 'linear-gradient(135deg,#0f0f0f,#1a1a1a,#0f0f0f)'};">
-            <div style="font-family:Montserrat,sans-serif;font-size:28px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">${posterData.title || 'EVENT NAME'}</div>
-            <div style="font-family:Montserrat,sans-serif;font-size:16px;color:#e8d5a3;margin-bottom:6px;">${posterData.date || 'DATE'}</div>
-            <div style="font-size:14px;color:rgba(255,255,255,0.8);margin-bottom:10px;">${posterData.location || 'LOCATION'}</div>
-            <div style="padding:4px 14px;border:1px solid #c9a84c;border-radius:100px;color:#c9a84c;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;">${posterData.category}</div>
-            <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center;font-family:monospace;font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:0.15em;">EVENTSPHERE</div>
-          </div>
-        </foreignObject>
-      </svg>
-    `;
-    const blob = new Blob([svg], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(posterData.title || 'poster').replace(/\s+/g, '-').toLowerCase()}-poster.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    
+    setIsDownloading(true);
+    try {
+      let scale = 2; // high definition
+      if (downloadQuality === 'standard') scale = 1;
+      if (downloadQuality === 'print') scale = 4;
+      
+      const canvas = await html2canvas(el, {
+        scale: scale,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#0a0a0a',
+        logging: false
+      });
+      
+      const fileNameBase = `${(posterData.title || 'EventName').replace(/\s+/g, '_')}_Poster_${downloadFormat.toUpperCase()}`;
+      
+      if (downloadFormat === 'pdf') {
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        // Calculate orientation
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({
+          orientation,
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
+        pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`${fileNameBase}.pdf`);
+      } else {
+        const mimeType = downloadFormat === 'png' ? 'image/png' : 'image/jpeg';
+        const imgData = canvas.toDataURL(mimeType, downloadFormat === 'png' ? undefined : 0.95);
+        const a = document.createElement('a');
+        a.href = imgData;
+        a.download = `${fileNameBase}.${downloadFormat}`;
+        a.click();
+      }
+      toast('Poster downloaded successfully', 'success');
+    } catch (err) {
+      console.error(err);
+      toast('Rendering failed. Please try again.', 'error');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const currentStyle = POSTER_STYLES.find(s => s.id === posterData.style) || POSTER_STYLES[0];
+
+  let logoPosStyle = { display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', zIndex: 10, position: 'absolute' };
+  switch (logoPosition) {
+    case 'top': logoPosStyle = { ...logoPosStyle, top: '40px', left: 0, right: 0, justifyContent: 'center' }; break;
+    case 'bottom-left': logoPosStyle = { ...logoPosStyle, bottom: '60px', left: '32px', justifyContent: 'flex-start' }; break;
+    case 'bottom-right': logoPosStyle = { ...logoPosStyle, bottom: '60px', right: '32px', justifyContent: 'flex-end' }; break;
+    case 'bottom': 
+    default: logoPosStyle = { ...logoPosStyle, bottom: '60px', left: 0, right: 0, justifyContent: 'center' }; break;
+  }
+
+  // Handle preview background logic
+  let wrapperStyle = { position: 'relative', width: '100%', height: '100%', overflow: 'hidden' };
+  if (bgImage) {
+    wrapperStyle.backgroundImage = `url(${bgImage})`;
+    wrapperStyle.backgroundSize = 'cover';
+    wrapperStyle.backgroundPosition = 'center';
+  } else {
+    if (posterData.style === 'concert') wrapperStyle.background = 'linear-gradient(135deg, #1a0a2e, #2d1b69, #1a0a2e)';
+    else if (posterData.style === 'conference') wrapperStyle.background = 'linear-gradient(135deg, #0a1628, #1b2d50, #0a1628)';
+    else if (posterData.style === 'festival') wrapperStyle.background = 'linear-gradient(135deg, #2e0a1a, #692d1b, #2e0a1a)';
+    else wrapperStyle.background = 'linear-gradient(135deg, #0f0f0f, #1a1a1a, #0f0f0f)';
+  }
 
   return (
     <div>
       <h3 style={{ marginBottom: 24 }}>Poster Generator</h3>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'start' }}>
-        {/* Inputs */}
-        <div className="card" style={{ padding: '28px' }}>
-          {events.length > 0 && (
-            <div className="form-group" style={{ marginBottom: 20 }}>
-              <label className="form-label">Auto-fill from Event</label>
-              <select className="form-input" onChange={handleEventSelect} defaultValue="">
-                <option value="" disabled>Select an event...</option>
-                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
-              </select>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label">Event Title</label>
-              <input className="form-input" value={posterData.title} onChange={e => set('title', e.target.value)} placeholder="Event name" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Event Date</label>
-              <input className="form-input" value={posterData.date} onChange={e => set('date', e.target.value)} placeholder="e.g. Saturday, March 15, 2026" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Location</label>
-              <input className="form-input" value={posterData.location} onChange={e => set('location', e.target.value)} placeholder="Venue name" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Category</label>
-              <select className="form-input" value={posterData.category} onChange={e => set('category', e.target.value)}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Poster Style</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                {POSTER_STYLES.map(s => (
-                  <motion.button
-                    key={s.id}
-                    type="button"
-                    className={`btn btn-sm ${posterData.style === s.id ? 'btn-gold' : 'btn-ghost'}`}
-                    onClick={() => set('style', s.id)}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    style={{ justifyContent: 'center' }}
-                  >
-                    {s.label}
-                  </motion.button>
-                ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) minmax(380px, 1fr)', gap: 32, alignItems: 'start' }}>
+        {/* Left Column: Inputs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          
+          {/* Section 1: Event Details */}
+          <div className="card" style={{ padding: '28px' }}>
+            <h4 style={{ marginBottom: 16, fontSize: '1.05rem', color: 'var(--gold)' }}>1. Event Details</h4>
+            {events.length > 0 && (
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label className="form-label">Auto-fill from Event</label>
+                <select className="form-input" onChange={handleEventSelect} defaultValue="">
+                  <option value="" disabled>Select an event...</option>
+                  {events.map(ev => <option key={ev.id} value={ev.id}>{ev.title}</option>)}
+                </select>
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Event Title</label>
+                <input className="form-input" value={posterData.title} onChange={e => set('title', e.target.value)} placeholder="Event name" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Event Date</label>
+                  <input className="form-input" value={posterData.date} onChange={e => set('date', e.target.value)} placeholder="e.g. Saturday, March 15" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Location</label>
+                  <input className="form-input" value={posterData.location} onChange={e => set('location', e.target.value)} placeholder="Venue name" />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Category</label>
+                <select className="form-input" value={posterData.category} onChange={e => set('category', e.target.value)}>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-            <motion.button
-              className="btn btn-gold"
-              style={{ flex: 1, justifyContent: 'center' }}
-              onClick={handleGenerate}
-              whileHover={{ boxShadow: '0 0 30px rgba(201,168,76,0.4)' }}
-              whileTap={{ scale: 0.97 }}
-            >
-              Generate Poster
-            </motion.button>
-            {generated && (
-              <motion.button
-                className="btn btn-outline"
-                style={{ flex: 1, justifyContent: 'center' }}
-                onClick={handleDownload}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ boxShadow: '0 0 20px rgba(201,168,76,0.3)' }}
-                whileTap={{ scale: 0.97 }}
-              >
-                Download Poster
-              </motion.button>
+          {/* Section 2: Background Image */}
+          <div className="card" style={{ padding: '28px' }}>
+            <h4 style={{ marginBottom: 16, fontSize: '1.05rem', color: 'var(--gold)' }}>2. Background Image</h4>
+            <div className="form-group">
+              {!bgImage ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-elevated)', cursor: 'pointer', position: 'relative', textAlign: 'center' }}>
+                  <input type="file" accept="image/jpeg, image/png, image/webp" style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} onChange={handleBgUpload} />
+                  <div style={{ fontSize: '2.5rem', marginBottom: 8, color: 'var(--text-muted)' }}>🖼️</div>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>Upload Custom Background</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Drag & drop image here or click to upload<br/>(max 5MB, min 1280x720 recommended)</div>
+                </div>
+              ) : (
+                <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elevated)', padding: 12 }}>
+                  <img src={bgImage} alt="Background Preview" style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <label className="btn btn-outline btn-sm" style={{ flex: 1, justifyContent: 'center', margin: 0, cursor: 'pointer' }}>
+                      <input type="file" accept="image/jpeg, image/png, image/webp" style={{ display: 'none' }} onChange={handleBgUpload} />
+                      Replace
+                    </label>
+                    <button className="btn btn-danger btn-sm" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setBgImage(null)}>Remove</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            {bgImage && (
+              <div className="form-group" style={{ marginTop: 20 }}>
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Dark Overlay Opacity</span>
+                  <span>{bgOverlay}%</span>
+                </label>
+                <input type="range" min="0" max="100" value={bgOverlay} onChange={e => setBgOverlay(e.target.value)} style={{ width: '100%', accentColor: 'var(--gold)' }} />
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>Auto-darkens image so text stays readable.</div>
+              </div>
             )}
+          </div>
+
+          {/* Section 3: Sponsor Logos */}
+          <div className="card" style={{ padding: '28px' }}>
+            <h4 style={{ marginBottom: 16, fontSize: '1.05rem', color: 'var(--gold)' }}>3. Sponsor Logos</h4>
+            
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className={`btn btn-outline ${logos.length >= 5 ? 'disabled' : ''}`} style={{ display: 'flex', justifyContent: 'center', width: '100%', margin: 0, cursor: logos.length >= 5 ? 'not-allowed' : 'pointer', opacity: logos.length >= 5 ? 0.5 : 1 }}>
+                <input type="file" accept="image/jpeg, image/png, image/svg+xml" multiple style={{ display: 'none' }} onChange={handleLogoUpload} disabled={logos.length >= 5} />
+                + Upload Sponsor Logos ({logos.length}/5)
+              </label>
+            </div>
+            
+            {logos.length > 0 && (
+              <>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+                  {logos.map(logo => (
+                    <div key={logo.id} style={{ position: 'relative', width: 68, height: 68, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+                      <img src={logo.dataUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      <button 
+                        onClick={() => removeLogo(logo.id)}
+                        style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: 'var(--red)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: 0, boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Sponsor Logo Position</label>
+                  <select className="form-input" value={logoPosition} onChange={e => setLogoPosition(e.target.value)}>
+                    <option value="top">Top</option>
+                    <option value="bottom">Bottom Center</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="bottom-right">Bottom Right</option>
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Section 4: Export Options */}
+          <div className="card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+             <h4 style={{ marginBottom: 0, fontSize: '1.05rem', color: 'var(--gold)' }}>4. Download Options</h4>
+             
+             {!generated ? (
+               <motion.button
+                 className="btn btn-gold"
+                 style={{ width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.05rem' }}
+                 onClick={handleGenerate}
+                 whileHover={{ boxShadow: '0 0 30px rgba(201,168,76,0.4)' }}
+                 whileTap={{ scale: 0.97 }}
+               >
+                 Review & Generate
+               </motion.button>
+             ) : (
+               <>
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                   <div className="form-group" style={{ marginBottom: 0 }}>
+                     <label className="form-label">Select Format</label>
+                     <select className="form-input" value={downloadFormat} onChange={e => setDownloadFormat(e.target.value)}>
+                       <option value="png">PNG Image</option>
+                       <option value="jpg">JPG Image</option>
+                       <option value="pdf">PDF Document</option>
+                     </select>
+                   </div>
+                   <div className="form-group" style={{ marginBottom: 0 }}>
+                     <label className="form-label">Select Quality</label>
+                     <select className="form-input" value={downloadQuality} onChange={e => setDownloadQuality(e.target.value)}>
+                       <option value="standard">Standard (1x)</option>
+                       <option value="high">High Definition (2x)</option>
+                       <option value="print">Print Quality (4x)</option>
+                     </select>
+                   </div>
+                 </div>
+                 <div style={{ display: 'flex', gap: 12 }}>
+                   <motion.button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setGenerated(false)}>
+                     Back to Edit
+                   </motion.button>
+                   <motion.button
+                     className="btn btn-gold"
+                     style={{ flex: 2, justifyContent: 'center' }}
+                     onClick={handleDownload}
+                     disabled={isDownloading}
+                     whileHover={{ boxShadow: '0 0 20px rgba(201,168,76,0.3)' }}
+                     whileTap={{ scale: 0.97 }}
+                   >
+                     {isDownloading ? <><div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Rendering & Exporting...</> : 'Download Poster'}
+                   </motion.button>
+                 </div>
+               </>
+             )}
           </div>
         </div>
 
-        {/* Live Preview */}
-        <div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-            Live Preview
+        {/* Right Column: Live Preview */}
+        <div style={{ position: 'sticky', top: '90px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
+              Live Preview
+            </div>
+            {generated && <div className="badge badge-green" style={{ fontSize: '0.8rem', padding: '4px 10px' }}>Ready to Download</div>}
           </div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={posterData.style + (generated ? '-gen' : '')}
-              ref={canvasRef}
-              className={`poster-preview ${currentStyle.className}`}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-            >
-              <PosterDecorations style={posterData.style} />
-              <div className="poster-content">
-                <div className="poster-title">{posterData.title || 'EVENT NAME'}</div>
-                <div className="poster-date">{posterData.date || 'DATE'}</div>
-                <div className="poster-location">{posterData.location || 'LOCATION'}</div>
-                <div className="poster-category">{posterData.category}</div>
-              </div>
-              <div className="poster-brand">EVENTSPHERE</div>
-            </motion.div>
-          </AnimatePresence>
+          
+          <div style={{ background: 'var(--nav-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={posterData.style + (generated ? '-gen' : '') + (bgImage ? '-bg' : '')}
+                ref={canvasRef}
+                className={`poster-preview ${currentStyle.className}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4 }}
+                style={wrapperStyle}
+              >
+                {/* Background Overlay */}
+                {bgImage && (
+                  <div style={{ position: 'absolute', inset: 0, background: '#000', opacity: bgOverlay / 100, zIndex: 1, pointerEvents: 'none' }} />
+                )}
+                
+                {/* Render decorations only if we don't have a custom background image (to not clutter it) */}
+                {!bgImage && <PosterDecorations style={posterData.style} />}
+                
+                {/* Main Text Content */}
+                <div style={{ position: 'relative', zIndex: 5, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="poster-title" style={{ textShadow: bgImage ? '0 4px 16px rgba(0,0,0,0.9)' : 'none' }}>
+                    {posterData.title || 'EVENT NAME'}
+                  </div>
+                  <div className="poster-date" style={{ textShadow: bgImage ? '0 2px 8px rgba(0,0,0,0.9)' : 'none' }}>
+                    {posterData.date || 'DATE'}
+                  </div>
+                  <div className="poster-location" style={{ textShadow: bgImage ? '0 2px 8px rgba(0,0,0,0.9)' : 'none' }}>
+                    {posterData.location || 'LOCATION'}
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '6px 16px',
+                    borderRadius: '30px',
+                    border: bgImage ? '1px solid rgba(201,168,76,0.6)' : '1px solid #c9a84c',
+                    background: bgImage ? 'rgba(0,0,0,0.65)' : 'transparent',
+                    marginTop: '8px'
+                  }}>
+                    <span style={{ 
+                      color: '#c9a84c', 
+                      fontSize: '11px', 
+                      fontWeight: 600, 
+                      letterSpacing: '1.5px', 
+                      textTransform: 'uppercase',
+                      lineHeight: '1'
+                    }}>
+                      {posterData.category}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Render Sponsor Logos */}
+                {logos.length > 0 && (
+                  <div style={logoPosStyle}>
+                    {logos.map(logo => (
+                      <img key={logo.id} src={logo.dataUrl} alt="Sponsor Logo" style={{ maxWidth: '90px', maxHeight: '60px', objectFit: 'contain', filter: bgImage ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))' : 'none' }} />
+                    ))}
+                  </div>
+                )}
+                
+                {/* Brand watermark */}
+                <div className="poster-brand" style={{ zIndex: 5, textShadow: bgImage ? '0 2px 4px rgba(0,0,0,0.9)' : 'none', bottom: '24px' }}>
+                  EVENTSPHERE
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>

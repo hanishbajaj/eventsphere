@@ -18,18 +18,21 @@ const CATEGORY_CLASSES = {
 export default function EventCard({ event, index = 0, onClick }) {
   const navigate = useNavigate();
   const handleClick = () => onClick ? onClick(event) : navigate(`/events/${event.id}`);
+  const displayCategory = event.category_type === 'custom' ? event.custom_category_name : event.category;
   const catClass = CATEGORY_CLASSES[event.category] || 'badge-gold';
   const date = new Date(event.date);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
+      initial={{ opacity: 0, scale: 0.95, y: 40 }}
+      whileInView={{ opacity: 1, scale: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.05, margin: "0px 0px -40px 0px" }}
+      transition={{ duration: 0.6, delay: (index % 3) * 0.1, ease: [0.22, 1, 0.36, 1] }}
       onClick={handleClick}
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer', height: '100%' }}
+      whileHover={{ scale: 1.02 }}
     >
-      <TiltCard className="event-card">
+      <TiltCard className="event-card card-glass" style={{ overflow: 'hidden' }}>
       {/* Image */}
       <div style={{ overflow: 'hidden', position: 'relative', height: 200 }}>
         <img
@@ -64,7 +67,7 @@ export default function EventCard({ event, index = 0, onClick }) {
       {/* Body */}
       <div className="event-card-body">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span className={`badge ${catClass}`}>{event.category}</span>
+          <span className={`badge ${catClass}`}>{displayCategory}</span>
           <span className="event-card-price">
             {event.price === 0 ? 'Free' : formatCurrency(event.price)}
           </span>

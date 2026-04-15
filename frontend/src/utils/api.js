@@ -1,5 +1,6 @@
 // utils/api.js — Centralized API client
-const BASE = '/api';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE = `${API_URL}/api`;
 
 const getToken = () => localStorage.getItem('es_token');
 
@@ -10,7 +11,13 @@ const headers = (extra = {}) => ({
 });
 
 const handle = async (res) => {
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (err) {
+    data = { message: text };
+  }
   if (!res.ok) throw new Error(data.message || 'Request failed');
   return data;
 };
@@ -38,7 +45,12 @@ export const api = {
   purchaseTicket: (body) => fetch(`${BASE}/tickets/purchase`, { method: 'POST', headers: headers(), body: JSON.stringify(body) }).then(handle),
   createPaymentIntent: (body) => fetch(`${BASE}/payments/create-intent`, { method: 'POST', headers: headers(), body: JSON.stringify(body) }).then(handle),
   getMyTickets: () => fetch(`${BASE}/tickets/my`, { headers: headers() }).then(handle),
+  checkUserTicket: (eventId) => fetch(`${BASE}/tickets/user/${eventId}`, { headers: headers() }).then(handle),
   getTicket: (id) => fetch(`${BASE}/tickets/${id}`, { headers: headers() }).then(handle),
+
+  // Reviews
+  getEventReviews: (eventId) => fetch(`${BASE}/reviews/event/${eventId}`, { headers: headers() }).then(handle),
+  addReview: (body) => fetch(`${BASE}/reviews`, { method: 'POST', headers: headers(), body: JSON.stringify(body) }).then(handle),
 
   // Sponsors
   sendSponsorRequest: (body) => fetch(`${BASE}/sponsors/request`, { method: 'POST', headers: headers(), body: JSON.stringify(body) }).then(handle),

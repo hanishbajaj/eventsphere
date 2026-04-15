@@ -7,9 +7,14 @@ const pool = require('../config/db');
 
 const signToken = (user) =>
   jwt.sign(
-    { id: user.id, email: user.email, role: user.role, name: user.name },
+    {
+      id: user.id,
+      role: user.role
+    },
     process.env.JWT_SECRET,
-    { expiresIn: '7d' }
+    {
+      expiresIn: "7d"
+    }
   );
 
 // POST /api/auth/register
@@ -40,7 +45,7 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ message: 'Email already registered' });
     }
 
-    const hashed = await bcrypt.hash(password, 12);
+    const hashed = await bcrypt.hash(password, 10);
     const userId = uuidv4();
     
     const newUser = {
@@ -50,7 +55,7 @@ router.post('/register', async (req, res) => {
       password: hashed,
       role,
       company: company || null,
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c9a84c`,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=c9a84c&color=fff`,
       banned: 0,
       budget: role === 'sponsor' ? 0.00 : null,
     };
@@ -78,20 +83,32 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ message: 'Email and password required' });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password required' });
+    }
 
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ? LIMIT 1', [email.trim()]);
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email.trim()]);
     const user = rows[0];
     
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-    if (user.banned) return res.status(403).json({ message: 'Account has been suspended' });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
+    console.log("User found:", user.email);
+
+    if (user.banned) {
+      return res.status(403).json({ success: false, message: 'Account has been suspended' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log("Password match:", isMatch);
+
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
 
     const logId = uuidv4();
     await pool.query('INSERT INTO systemLogs SET ?', [{
@@ -103,10 +120,12 @@ router.post('/login', async (req, res) => {
 
     const { password: _, ...safeUser } = user;
     safeUser.banned = !!safeUser.banned;
-    res.json({ token: signToken(user), user: safeUser });
+    
+    const token = signToken(user);
+    res.status(200).json({ success: true, token, user: safeUser });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Login failed', error: err.message });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 });
 

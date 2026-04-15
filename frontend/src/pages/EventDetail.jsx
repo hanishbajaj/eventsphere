@@ -225,27 +225,7 @@ const CATEGORY_CLASSES = {
   "Charity Gala": "cat-charity",
 };
 
-/* ─── Reviews Storage (localStorage-based) ─────── */
-function getReviews(eventId) {
-  const all = JSON.parse(localStorage.getItem('es_reviews') || '{}');
-  return all[eventId] || [];
-}
-
-function saveReview(eventId, review) {
-  const all = JSON.parse(localStorage.getItem('es_reviews') || '{}');
-  if (!all[eventId]) all[eventId] = [];
-  all[eventId].unshift(review);
-  localStorage.setItem('es_reviews', JSON.stringify(all));
-  return all[eventId];
-}
-
-const SAMPLE_REVIEWS = [
-  { name: 'Rahul Sharma', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul', rating: 5, text: 'Amazing experience! The stage setup and lighting were incredible. Would definitely attend again.', date: '2026-02-15' },
-  { name: 'Priya Singh', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya', rating: 4, text: 'Well organized event with great speakers. The venue was a bit crowded but overall fantastic.', date: '2026-02-10' },
-  { name: 'Alex Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', rating: 5, text: "One of the best events I've attended this year. The networking opportunities were excellent!", date: '2026-01-28' },
-  { name: 'Maria Gonzalez', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria', rating: 3, text: 'Good event overall. Sound quality could have been better but the performances were great.', date: '2026-01-20' },
-  { name: 'James Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=James', rating: 4, text: 'Loved the atmosphere and the energy of the crowd. Ticket price was very reasonable for the quality.', date: '2026-01-15' },
-];
+/* ─── Reviews Subcomponents ─────── */
 
 function StarDisplay({ rating, size = 16 }) {
   return (
@@ -262,7 +242,7 @@ function StarDisplay({ rating, size = 16 }) {
   );
 }
 
-function ReviewsSection({ eventId, user, canReview }) {
+function ReviewsSection({ eventId, eventEndDate, user, hasTicket }) {
   const toast = useToast();
   const [reviews, setReviews] = useState([]);
   const [newRating, setNewRating] = useState(0);
@@ -271,15 +251,9 @@ function ReviewsSection({ eventId, user, canReview }) {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    let existing = getReviews(eventId);
-    if (existing.length === 0) {
-      const all = JSON.parse(localStorage.getItem('es_reviews') || '{}');
-      const count = 3 + Math.floor(Math.random() * 3);
-      all[eventId] = SAMPLE_REVIEWS.slice(0, count).map(r => ({ ...r, id: Math.random().toString(36).substr(2, 9) }));
-      localStorage.setItem('es_reviews', JSON.stringify(all));
-      existing = all[eventId];
-    }
-    setReviews(existing);
+    api.getEventReviews(eventId)
+      .then(res => setReviews(res.reviews || []))
+      .catch(err => console.error("Failed to load reviews:", err));
   }, [eventId]);
 
   const avgRating = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0.0';
@@ -289,51 +263,69 @@ function ReviewsSection({ eventId, user, canReview }) {
     pct: reviews.length ? (reviews.filter(r => r.rating === star).length / reviews.length) * 100 : 0,
   }));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!newRating) { toast('Please select a rating', 'error'); return; }
     if (!newText.trim()) { toast('Please write a review', 'error'); return; }
-    const review = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: user?.name || 'Anonymous',
-      avatar: user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${Date.now()}`,
-      rating: newRating, text: newText.trim(),
-      date: new Date().toISOString().split('T')[0],
-    };
-    const updated = saveReview(eventId, review);
-    setReviews(updated);
-    setNewRating(0); setNewText(''); setShowForm(false);
-    toast('Review submitted!', 'success');
+    
+    try {
+      await api.addReview({ eventId, rating: newRating, comment: newText.trim() });
+      toast('Review submitted successfully!', 'success');
+      setNewRating(0); setNewText(''); setShowForm(false);
+      const updated = await api.getEventReviews(eventId);
+      setReviews(updated.reviews || []);
+    } catch (err) {
+      toast(err.message || 'Failed to submit review', 'error');
+    }
   };
+
+  const isEventExpired = new Date() > new Date(eventEndDate);
+  
+  let cannotReviewReason = null;
+  if (!isEventExpired) {
+    cannotReviewReason = "Reviews will be available after the event ends.";
+  } else if (!user) {
+    cannotReviewReason = "Please sign in to leave a review.";
+  } else if (!hasTicket) {
+    cannotReviewReason = "Only verified ticket buyers can leave a review.";
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ marginTop: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h3 style={{ fontSize: '1.2rem' }}>Reviews & Ratings</h3>
-        {canReview && (
+        {!cannotReviewReason && (
           <motion.button className="btn btn-outline btn-sm" onClick={() => setShowForm(f => !f)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             {showForm ? 'Cancel' : 'Write a Review'}
           </motion.button>
         )}
       </div>
 
-      <div className="rating-summary">
-        <div className="rating-big">
-          <div className="rating-big-number">{avgRating}</div>
-          <StarDisplay rating={Math.round(Number(avgRating))} size={18} />
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className="rating-bars">
-          {distribution.map(d => (
-            <div key={d.star} className="rating-bar-row">
-              <span style={{ width: 50 }}>{d.star} star{d.star !== 1 ? 's' : ''}</span>
-              <div className="rating-bar-track">
-                <motion.div className="rating-bar-fill" initial={{ width: 0 }} animate={{ width: `${d.pct}%` }} transition={{ duration: 0.8, delay: (5 - d.star) * 0.1 }} />
+      {cannotReviewReason && (
+         <div style={{ background: 'var(--bg-elevated)', padding: '12px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+            {cannotReviewReason}
+         </div>
+      )}
+
+      {reviews.length > 0 && (
+        <div className="rating-summary">
+          <div className="rating-big">
+            <div className="rating-big-number">{avgRating}</div>
+            <StarDisplay rating={Math.round(Number(avgRating))} size={18} />
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="rating-bars">
+            {distribution.map(d => (
+              <div key={d.star} className="rating-bar-row">
+                <span style={{ width: 50 }}>{d.star} star{d.star !== 1 ? 's' : ''}</span>
+                <div className="rating-bar-track">
+                  <motion.div className="rating-bar-fill" initial={{ width: 0 }} animate={{ width: `${d.pct}%` }} transition={{ duration: 0.8, delay: (5 - d.star) * 0.1 }} />
+                </div>
+                <span style={{ width: 24, textAlign: 'right' }}>{d.count}</span>
               </div>
-              <span style={{ width: 24, textAlign: 'right' }}>{d.count}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <AnimatePresence>
         {showForm && (
@@ -363,6 +355,12 @@ function ReviewsSection({ eventId, user, canReview }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {reviews.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '0.9rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+              No reviews yet
+          </div>
+      )}
 
       {reviews.map((review, i) => (
         <motion.div key={review.id} className="review-card" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
@@ -411,10 +409,8 @@ export default function EventDetail() {
 
   useEffect(() => {
     if (user && user.role === 'buyer') {
-      api.getMyTickets()
-        .then(tickets => {
-          setHasTicket(tickets.some(t => t.eventId === id));
-        })
+      api.checkUserTicket(id)
+        .then(res => setHasTicket(res.hasTicket))
         .catch(err => console.error(err));
     }
   }, [user, id]);
@@ -596,7 +592,7 @@ export default function EventDetail() {
               </div>
             </div>
 
-            <ReviewsSection eventId={id} user={user} canReview={user?.role === 'buyer' && (hasTicket || !!ticket) && isExpired} />
+            <ReviewsSection eventId={id} eventEndDate={event.endDate} user={user} hasTicket={hasTicket} />
           </motion.div>
 
           {/* ── Ticket sidebar ── */}

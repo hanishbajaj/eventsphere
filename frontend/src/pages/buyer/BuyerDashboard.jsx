@@ -7,6 +7,7 @@ import { formatCurrency } from '../../utils/currency';
 import DashLayout from '../../components/DashLayout';
 import EventCard from '../../components/EventCard';
 import Modal from '../../components/Modal';
+import { DashboardCard3D, TicketCard3D } from '../../components/Interactive';
 import { api } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -17,9 +18,8 @@ function StatCard({ value, label, icon, color, delay = 0 }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="stat-card"
-      style={{ borderLeft: `3px solid ${color}` }}
     >
+      <DashboardCard3D className="stat-card" style={{ borderLeft: `3px solid ${color}`, height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div className="stat-number" style={{ color }}>{value}</div>
@@ -27,6 +27,7 @@ function StatCard({ value, label, icon, color, delay = 0 }) {
         </div>
         <div style={{ fontSize: '1.6rem' }}>{icon}</div>
       </div>
+      </DashboardCard3D>
     </motion.div>
   );
 }
@@ -89,15 +90,11 @@ export default function BuyerDashboard({ tab = 'Overview' }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {tickets.map((ticket, i) => (
-                <motion.div
+                <TicketCard3D
                   key={ticket.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08 }}
                   className="card"
                   style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 20, cursor: 'pointer' }}
                   onClick={() => openTicket(ticket)}
-                  whileHover={{ x: 4 }}
                 >
                   <div style={{
                     width: 48, height: 48, background: 'var(--gold-glow)', border: '1px solid var(--border-gold)',
@@ -121,7 +118,7 @@ export default function BuyerDashboard({ tab = 'Overview' }) {
                     <span className="badge badge-green" style={{ marginTop: 4 }}>{ticket.status}</span>
                   </div>
                   <div style={{ color: 'var(--text-muted)' }}>→</div>
-                </motion.div>
+                </TicketCard3D>
               ))}
             </div>
           )}

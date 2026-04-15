@@ -1,11 +1,12 @@
 // Temporary test script — delete after use
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
-const { Users, Events } = require('./models/db');
+const { findOne, findAll } = require('./models/db');
 
 (async () => {
-  const buyer = Users.findOne({ role: 'buyer' });
-  const event = Events.findAll().find(e => e.status === 'approved');
+  const buyer = await findOne('users', { role: 'buyer' });
+  const events = await findAll('events');
+  const event = events.find(e => e.status === 'approved');
 
   if (!buyer || !event) {
     console.log('No buyer or approved event found');

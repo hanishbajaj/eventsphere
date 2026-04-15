@@ -10,6 +10,7 @@ const ticketRoutes  = require('./routes/tickets');
 const sponsorRoutes = require('./routes/sponsors');
 const userRoutes    = require('./routes/users');
 const paymentRoutes = require('./routes/payments');
+const reviewRoutes  = require('./routes/reviews');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,6 +38,7 @@ app.use('/api/tickets',  ticketRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/users',    userRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/reviews',  reviewRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -48,12 +50,14 @@ app.use((err, _req, res, _next) => {
 });
 
 const pool = require('./config/db');
+const initDB = require('./config/initDB');
 
 // Start
 app.listen(PORT, async () => {
   try {
     await pool.query('SELECT 1');
     console.log('✅ MySQL connected');
+    await initDB();
   } catch(err) {
     console.error('❌ MySQL connection failed:', err.message);
   }

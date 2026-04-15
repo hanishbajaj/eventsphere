@@ -57,7 +57,7 @@ module.exports = {
     }
 
     await pool.query(`INSERT INTO ?? SET ?`, [table, processedData]);
-    return this.findById(table, data.id);
+    return module.exports.findById(table, data.id);
   },
 
   async updateById(table, id, data) {
@@ -71,7 +71,7 @@ module.exports = {
 
     const [result] = await pool.query(`UPDATE ?? SET ? WHERE id = ?`, [table, processedData, id]);
     if (result.affectedRows === 0) return null;
-    return this.findById(table, id);
+    return module.exports.findById(table, id);
   },
 
   async deleteById(table, id) {

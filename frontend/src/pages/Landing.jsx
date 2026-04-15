@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { MagneticWrapper } from '../components/Interactive';
+import { MagneticWrapper, EventCard3D, FeatureCard3D, CategoryCard3D, DirectionalReveal } from '../components/Interactive';
 
 const CATEGORIES = [
   { name: 'Concert / Music', icon: '🎵', color: '#d878d8' },
@@ -827,23 +827,22 @@ export default function Landing() {
 
           <div className="landing-horizontal-scroll" style={{ display: 'flex', gap: 18, overflowX: 'auto', paddingBottom: 10 }}>
             {LIVE_EVENTS.map((event, index) => (
-              <motion.div
+              <DirectionalReveal
                 key={event.title}
-                initial={{ opacity: 0, x: 40 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: index * 0.08 }}
-                whileHover={{ y: -8, scale: 1.02, boxShadow: '0 22px 48px rgba(201,168,76,0.14)' }}
+                direction={index % 2 === 0 ? 'left' : 'right'}
+                delay={index * 0.08}
                 style={{
                   minWidth: 320,
-                  flex: '0 0 320px',
+                  flex: '0 0 320px'
+                }}
+              >
+                <EventCard3D style={{
                   background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, var(--bg-card) 100%)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-xl)',
                   overflow: 'hidden',
-                  cursor: 'pointer',
-                }}
-              >
+                  cursor: 'pointer'
+                }}>
                 <div style={{ position: 'relative', height: 188, overflow: 'hidden' }}>
                   <motion.img
                     src={event.image}
@@ -871,7 +870,8 @@ export default function Landing() {
                   </div>
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{event.viewers}</div>
                 </div>
-              </motion.div>
+               </EventCard3D>
+              </DirectionalReveal>
             ))}
           </div>
         </div>
@@ -892,23 +892,21 @@ export default function Landing() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             {CATEGORIES.map((category, index) => (
-              <motion.div
+              <DirectionalReveal
                 key={category.name}
-                initial={{ opacity: 0, scale: 0.92, y: 24 }}
-                whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.06 }}
-                whileHover={{ scale: 1.05, y: -8, borderColor: `${category.color}60`, boxShadow: `0 18px 38px ${category.color}18` }}
-                onClick={() => navigate(`/events?category=${encodeURIComponent(category.name)}`)}
-                style={{
+                direction="bottom"
+                delay={index * 0.06}
+              >
+                <div onClick={() => navigate(`/events?category=${encodeURIComponent(category.name)}`)} style={{ height: '100%' }}>
+                <CategoryCard3D glowColor={`${category.color}33`} style={{
                   background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, var(--bg-card) 100%)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-lg)',
                   padding: '28px 20px',
                   textAlign: 'center',
                   cursor: 'pointer',
-                }}
-              >
+                  height: '100%'
+                }}>
                 <motion.div
                   animate={{ rotate: [-8, 8, -4, 0], y: [0, -4, 0] }}
                   transition={{ repeat: Infinity, duration: 7 + index * 0.3, ease: 'easeInOut' }}
@@ -917,7 +915,9 @@ export default function Landing() {
                   {category.icon}
                 </motion.div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem', color: category.color }}>{category.name}</div>
-              </motion.div>
+                </CategoryCard3D>
+                </div>
+              </DirectionalReveal>
             ))}
           </div>
         </div>
@@ -1028,13 +1028,13 @@ export default function Landing() {
 
           <div className="grid-3">
             {WHY_FEATURES.map((feature, index) => (
-              <motion.div
+              <DirectionalReveal
                 key={feature.title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -8, scale: 1.02, boxShadow: '0 22px 48px rgba(201,168,76,0.14)' }}
+                direction={index % 2 === 0 ? 'top' : 'bottom'}
+                delay={index * 0.1}
+                style={{ position: 'relative' }}
+              >
+               <FeatureCard3D
                 style={{
                   background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, var(--bg-card) 100%)',
                   border: '1px solid var(--border)',
@@ -1042,6 +1042,8 @@ export default function Landing() {
                   padding: 32,
                   position: 'relative',
                   overflow: 'hidden',
+                  width: '100%',
+                  height: '100%'
                 }}
               >
                 <motion.div
@@ -1066,7 +1068,8 @@ export default function Landing() {
                 </motion.div>
                 <h3 style={{ marginBottom: 12, position: 'relative', zIndex: 1 }}>{feature.title}</h3>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, position: 'relative', zIndex: 1 }}>{feature.description}</p>
-              </motion.div>
+               </FeatureCard3D>
+              </DirectionalReveal>
             ))}
           </div>
         </div>

@@ -1,7 +1,8 @@
 // models/seed.js — Seeds default users and sample events
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const { Users, Events, Tickets, SponsorRequests } = require('./db');
+const pool = require('../config/db');
+const { create, findOne, findAll } = require('./db');
 
 const CATEGORIES = ['Concert / Music', 'Sports', 'Conference', 'Workshop', 'Theater', 'Festival', 'Webinar', 'Charity Gala'];
 
@@ -148,35 +149,42 @@ const sampleEvents = [
 ];
 
 async function seedDatabase() {
-  // Seed users only if empty
-  if (Users.count() === 0) {
-    const hash = (pw) => bcrypt.hashSync(pw, 10);
-    const seedUsers = [
-      { id: uuidv4(), name: 'Admin User', email: 'admin@eventsphere.com', password: hash('Admin123!'), role: 'admin', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=AU&backgroundColor=c9a84c' },
-      { id: uuidv4(), name: 'Alex Organizer', email: 'organizer@eventsphere.com', password: hash('Organizer1!'), role: 'organizer', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=AO&backgroundColor=4c7bc9' },
-      { id: uuidv4(), name: 'Sam Sponsor', email: 'sponsor@eventsphere.com', password: hash('Sponsor1!'), role: 'sponsor', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=SS&backgroundColor=4cc97b', company: 'TechCorp Inc.', budget: 50000 },
-      { id: uuidv4(), name: 'Jamie Buyer', email: 'buyer@eventsphere.com', password: hash('Buyer123!'), role: 'buyer', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JB&backgroundColor=c94c4c' },
-    ];
-    seedUsers.forEach(u => Users.create(u));
-    console.log('✅ Seeded default users');
-  }
+  try {
+    // Seed users only if empty
+    const users = await findAll('users');
+    if (users.length === 0) {
+      const hash = (pw) => bcrypt.hashSync(pw, 10);
+      const seedUsers = [
+        { id: uuidv4(), name: 'Admin User', email: 'admin@eventsphere.com', password: hash('Admin123!'), role: 'admin', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=AU&backgroundColor=c9a84c' },
+        { id: uuidv4(), name: 'Alex Organizer', email: 'organizer@eventsphere.com', password: hash('Organizer1!'), role: 'organizer', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=AO&backgroundColor=4c7bc9' },
+        { id: uuidv4(), name: 'Sam Sponsor', email: 'sponsor@eventsphere.com', password: hash('Sponsor1!'), role: 'sponsor', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=SS&backgroundColor=4cc97b', company: 'TechCorp Inc.', budget: 50000 },
+        { id: uuidv4(), name: 'Jamie Buyer', email: 'buyer@eventsphere.com', password: hash('Buyer123!'), role: 'buyer', avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=JB&backgroundColor=c94c4c' },
+      ];
+      for (const u of seedUsers) {
+        await create('users', u);
+      }
+      console.log('✅ Seeded default users');
+    }
 
-  // Seed events only if empty
-  if (Events.count() === 0) {
-    const organizer = Users.findOne({ role: 'organizer' });
-    sampleEvents.forEach(ev => {
-      Events.create({
-        id: uuidv4(),
-        ...ev,
-        organizerId: organizer?.id,
-        organizerName: organizer?.name,
-        seats: generateSeats(ev.category),
-        ticketsSold: Math.floor(Math.random() * 30),
-        revenue: 0,
-        sponsorRequests: [],
-      });
-    });
-    console.log('✅ Seeded sample events');
+    // Seed events only if empty
+    const events = await findAll('events');
+    if (events.length === 0) {
+      const organizer = await findOne('users', { role: 'organizer' });
+      for (const ev of sampleEvents) {
+        await create('events', {
+          id: uuidv4(),
+          ...ev,
+          organizerId: organizer ? organizer.id : null,
+          organizerName: organizer ? organizer.name : null,
+          seats: generateSeats(ev.category),
+          ticketsSold: Math.floor(Math.random() * 30),
+          revenue: 0,
+        });
+      }
+      console.log('✅ Seeded sample events');
+    }
+  } catch (err) {
+    console.error('❌ Failed to seed database:', err.message);
   }
 }
 

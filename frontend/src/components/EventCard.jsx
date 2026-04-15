@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../utils/currency';
-import { TiltCard } from './Interactive';
+import { EventCard3D } from './Interactive';
 
 const CATEGORY_CLASSES = {
   'Concert / Music': 'cat-concert',
@@ -32,7 +32,7 @@ export default function EventCard({ event, index = 0, onClick }) {
       style={{ cursor: 'pointer', height: '100%' }}
       whileHover={{ scale: 1.02 }}
     >
-      <TiltCard className="event-card card-glass" style={{ overflow: 'hidden' }}>
+      <EventCard3D className="event-card card-glass" style={{ overflow: 'hidden' }}>
       {/* Image */}
       <div style={{ overflow: 'hidden', position: 'relative', height: 200 }}>
         <img
@@ -99,7 +99,7 @@ export default function EventCard({ event, index = 0, onClick }) {
           </div>
         )}
       </div>
-      </TiltCard>
+      </EventCard3D>
     </motion.div>
   );
 }

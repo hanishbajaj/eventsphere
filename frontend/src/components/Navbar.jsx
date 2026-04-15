@@ -1,7 +1,7 @@
 // components/Navbar.jsx
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -97,6 +97,10 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, "change", (latest) => setScrolled(latest > 20));
 
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); setDropOpen(false); }, [location]);
@@ -112,8 +116,24 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="nav">
-        <div className="container nav-inner">
+      <motion.nav 
+        className="nav"
+        animate={{
+          background: scrolled ? 'var(--bg-nav)' : 'transparent',
+          backdropFilter: scrolled ? 'var(--backdrop-blur-lg)' : 'blur(0px)',
+          borderColor: scrolled ? 'var(--border-light)' : 'transparent',
+          boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
+        }}
+        transition={{ duration: 0.3 }}
+        style={{
+          position: 'sticky', top: 0, zIndex: 100, borderBottomWidth: 1, borderBottomStyle: 'solid'
+        }}
+      >
+        <motion.div 
+          className="container nav-inner"
+          animate={{ height: scrolled ? 68 : 84 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        >
           {/* Logo */}
           <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
             <img src="/logo_transparent (1).png" alt="EventSphere" style={{ height: 60, width: 'auto' }} />
@@ -185,8 +205,8 @@ export default function Navbar() {
               }
             </button>
           </div>
-        </div>
-      </nav>
+        </motion.div>
+      </motion.nav>
 
       {/* ── Mobile Menu Drawer ── */}
       <AnimatePresence>

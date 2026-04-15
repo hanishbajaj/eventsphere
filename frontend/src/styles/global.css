@@ -1,4 +1,7 @@
 /* styles/global.css — EventSphere Design System */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ─── DESIGN TOKENS ─────────────────────────────────────── */
 :root {

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashLayout from '../../components/DashLayout';
 import Modal from '../../components/Modal';
+import { DashboardCard3D } from '../../components/Interactive';
 import { api } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
 import { formatCurrency } from '../../utils/currency';
@@ -140,12 +141,13 @@ export default function AdminDashboard({ tab = 'Overview' }) {
               { v: stats.tickets.total, l: 'Tickets Sold', i: '🎫', c: 'var(--gold)' },
               { v: formatCurrency(stats.tickets.revenue || 0), l: 'Platform Revenue', i: '💰', c: 'var(--orange)' },
             ].map((s, i) => (
-              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-                className="stat-card" style={{ borderLeft: `3px solid ${s.c}` }}>
+              <motion.div key={s.l} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+                <DashboardCard3D className="stat-card" style={{ borderLeft: `3px solid ${s.c}`, height: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <div><div className="stat-number" style={{ color: s.c }}>{s.v}</div><div className="stat-label">{s.l}</div></div>
                   <div style={{ fontSize: '1.6rem' }}>{s.i}</div>
                 </div>
+                </DashboardCard3D>
               </motion.div>
             ))}
           </div>

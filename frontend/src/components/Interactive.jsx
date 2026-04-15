@@ -54,99 +54,259 @@ export const MagneticWrapper = ({ children, strength = 20, style, className }) =
 
 
 /**
- * TiltCard
- * A premium 3D perspective tilt effect utilizing CSS rotateX/Y tracking 
- * the relative cursor coordinates over the component geometry.
+ * 1. EventCard3D 
+ * Lift upward, tilt slightly, glow border
  */
-export const TiltCard = ({ children, className, style }) => {
+export const EventCard3D = ({ children, className, style }) => {
   const ref = useRef(null);
   const [hovering, setHovering] = useState(false);
-
-  const x = useMotionValue(0.5); // 0 to 1 mapping
-  const y = useMotionValue(0.5); // 0 to 1 mapping
-
-  const springX = useSpring(x, { stiffness: 300, damping: 30, bounce: 0 });
-  const springY = useSpring(y, { stiffness: 300, damping: 30, bounce: 0 });
-
-  const rotateX = useTransform(springY, [0, 1], [10, -10]);
-  const rotateY = useTransform(springX, [0, 1], [-10, 10]);
   
-  // Calculate dynamic mouse-tracking gradient lighting
-  const bgX = useTransform(springX, [0, 1], [0, 100]);
-  const bgY = useTransform(springY, [0, 1], [0, 100]);
+  const x = useMotionValue(0.5);
+  const y = useMotionValue(0.5);
+
+  const springX = useSpring(x, { stiffness: 300, damping: 25, bounce: 0 });
+  const springY = useSpring(y, { stiffness: 300, damping: 25, bounce: 0 });
+
+  const rotateX = useTransform(springY, [0, 1], [12, -12]);
+  const rotateY = useTransform(springX, [0, 1], [-12, 12]);
 
   const handleMouseMove = (e) => {
     if (!ref.current) return;
     const { left, top, width, height } = ref.current.getBoundingClientRect();
-    const relativeX = e.clientX - left;
-    const relativeY = e.clientY - top;
-    
-    x.set(relativeX / width);
-    y.set(relativeY / height);
+    x.set((e.clientX - left) / width);
+    y.set((e.clientY - top) / height);
   };
-
-  const handleMouseEnter = () => setHovering(true);
-  
-  const handleMouseLeave = () => {
-    setHovering(false);
-    x.set(0.5);
-    y.set(0.5);
-  };
-
-  // Inject CSS variable natively for a dynamic glowing spotlight effect over the card.
-  useEffect(() => {
-    if (ref.current) {
-      bgX.onChange((v) => ref.current.style.setProperty('--mouseX', `${v}%`));
-      bgY.onChange((v) => ref.current.style.setProperty('--mouseY', `${v}%`));
-    }
-  }, [bgX, bgY]);
 
   return (
     <motion.div
       ref={ref}
-      className={`tilt-card-container ${className || ""}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className={`relative ${className || ""}`}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => { setHovering(false); x.set(0.5); y.set(0.5); }}
       onMouseMove={handleMouseMove}
-      style={{
-        perspective: 1200,
-        transformStyle: "preserve-3d",
-        ...style
-      }}
+      style={{ perspective: 1000, ...style }}
+      initial={{ scale: 1, y: 0 }}
+      animate={{ scale: hovering ? 1.02 : 1, y: hovering ? -12 : 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
+      <motion.div style={{ rotateX, rotateY, transformStyle: "preserve-3d", width: "100%", height: "100%" }}>
+        <motion.div 
+          style={{ width: "100%", height: "100%" }}
+          animate={{ boxShadow: hovering ? "0 0 0 2px var(--gold-light), 0 20px 40px rgba(201,168,76,0.2)" : "0 8px 16px rgba(0,0,0,0.1)" }}
+          transition={{ duration: 0.25 }}
+        >
+          {children}
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+/**
+ * 2. FeatureCard3D
+ * Rotate slightly, scale up significantly, add massive diffuse shadow
+ */
+export const FeatureCard3D = ({ children, className, style }) => {
+  const ref = useRef(null);
+  const [hovering, setHovering] = useState(false);
+  
+  const x = useMotionValue(0.5);
+  const y = useMotionValue(0.5);
+
+  const springX = useSpring(x, { stiffness: 400, damping: 30 });
+  const springY = useSpring(y, { stiffness: 400, damping: 30 });
+
+  const rotateX = useTransform(springY, [0, 1], [8, -8]);
+  const rotateY = useTransform(springX, [0, 1], [-8, 8]);
+  const rotateZ = useTransform(springX, [0, 1], [-2, 2]); // Rotate slightly
+
+  const handleMouseMove = (e) => {
+    if (!ref.current) return;
+    const { left, top, width, height } = ref.current.getBoundingClientRect();
+    x.set((e.clientX - left) / width);
+    y.set((e.clientY - top) / height);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => { setHovering(false); x.set(0.5); y.set(0.5); }}
+      onMouseMove={handleMouseMove}
+      style={{ perspective: 1200, ...style }}
       initial={{ scale: 1, z: 0 }}
-      animate={{ 
-        scale: hovering ? 1.03 : 1,
-        z: hovering ? 20 : 0
-      }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      animate={{ scale: hovering ? 1.06 : 1, z: hovering ? 40 : 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    >
+      <motion.div 
+        style={{ rotateX, rotateY, rotateZ, transformStyle: "preserve-3d", width: "100%", height: "100%" }}
+        animate={{ boxShadow: hovering ? "0 30px 60px rgba(0,0,0,0.5)" : "0 4px 12px rgba(0,0,0,0.1)" }}
+      >
+        {children}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+/**
+ * 3. CategoryCard3D
+ * Slide upward securely, add internal radial background glow
+ */
+export const CategoryCard3D = ({ children, className, style, glowColor = "rgba(201,168,76,0.15)" }) => {
+  const ref = useRef(null);
+  const [hovering, setHovering] = useState(false);
+  
+  const x = useMotionValue(0.5);
+  const y = useMotionValue(0.5);
+
+  const bgX = useTransform(x, [0, 1], [0, 100]);
+  const bgY = useTransform(y, [0, 1], [0, 100]);
+
+  const handleMouseMove = (e) => {
+    if (!ref.current) return;
+    const { left, top, width, height } = ref.current.getBoundingClientRect();
+    x.set((e.clientX - left) / width);
+    y.set((e.clientY - top) / height);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      className={`relative overflow-hidden ${className || ""}`}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => { setHovering(false); x.set(0.5); y.set(0.5); }}
+      onMouseMove={handleMouseMove}
+      style={{ ...style }}
+      initial={{ y: 0 }}
+      animate={{ y: hovering ? -18 : 0 }}
+      transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
+    >
+      {/* Background radial glow tied to cursor */}
+      <motion.div
+        animate={{ opacity: hovering ? 1 : 0 }}
+        transition={{ duration: 0.2 }}
+        style={{
+          position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
+          background: `radial-gradient(circle 120px at var(--glowX, 50%) var(--glowY, 50%), ${glowColor}, transparent)`
+        }}
+      />
+      {/* Invisible tracker */}
+      <motion.div 
+        style={{ position: 'absolute', inset: 0, opacity: 0 }}
+        onUpdate={() => {
+          if (ref.current) {
+            ref.current.style.setProperty('--glowX', `${bgX.get()}%`);
+            ref.current.style.setProperty('--glowY', `${bgY.get()}%`);
+          }
+        }} 
+      />
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
+        {children}
+      </div>
+    </motion.div>
+  );
+};
+
+/**
+ * 4. DashboardCard3D
+ * Flip completely on hover using pronounced rotateY, deeply pushes perspective.
+ */
+export const DashboardCard3D = ({ children, className, style }) => {
+  const [hovering, setHovering] = useState(false);
+  return (
+    <motion.div
+      className={className}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      style={{ perspective: 1000, ...style }}
+      initial={{ scale: 1 }}
+      animate={{ scale: hovering ? 1.03 : 1 }}
+      transition={{ duration: 0.3 }}
     >
       <motion.div
-        style={{
-          rotateX,
-          rotateY,
-          transformStyle: "preserve-3d",
-          width: "100%",
-          height: "100%"
-        }}
+        style={{ transformStyle: "preserve-3d", width: "100%", height: "100%" }}
+        animate={{ rotateY: hovering ? 8 : 0, z: hovering ? 30 : 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
-        <div className="tilt-card-content">
-          {children}
-        </div>
-        
-        {/* Soft cursor-following light wash */}
-        <motion.div
-          className="tilt-card-glare"
-          animate={{ opacity: hovering ? 1 : 0 }}
-          transition={{ duration: 0.3 }}
-          style={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            borderRadius: "inherit",
-            background: "radial-gradient(circle at var(--mouseX, 50%) var(--mouseY, 50%), rgba(255,255,255,0.06) 0%, transparent 60%)"
-          }}
-        />
+        {children}
       </motion.div>
+    </motion.div>
+  );
+};
+
+/**
+ * 5. TicketCard3D
+ * Bounce slightly, add soft pulse glow around the outline
+ */
+export const TicketCard3D = ({ children, className, style, onClick }) => {
+  return (
+    <motion.div
+      className={className}
+      onClick={onClick}
+      style={{ ...style }}
+      whileHover={{ 
+        y: -6, 
+        scale: 1.02, 
+        boxShadow: "0 0 15px rgba(201,168,76,0.4)" 
+      }}
+      transition={{ 
+        type: "spring", stiffness: 400, damping: 10, mass: 0.8 
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+
+/**
+ * DirectionalReveal
+ * Handles staggered scroll appearances based on direction
+ * direction: 'left' | 'right' | 'top' | 'bottom' | 'zoom'
+ */
+export const DirectionalReveal = ({ children, direction = 'bottom', delay = 0, className, style }) => {
+  const variants = {
+    hidden: {
+      opacity: 0,
+      x: direction === 'left' ? -60 : direction === 'right' ? 60 : 0,
+      y: direction === 'top' ? -60 : direction === 'bottom' ? 60 : 0,
+      scale: direction === 'zoom' ? 0.8 : 1
+    },
+    visible: { 
+      opacity: 1, x: 0, y: 0, scale: 1,
+      transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] } 
+    }
+  };
+
+  return (
+    <motion.div
+      className={className}
+      style={style}
+      variants={variants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.1 }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+/**
+ * PageTransition
+ * Wraps Routes to provide smooth entering and exiting fade transitions
+ */
+export const PageTransition = ({ children }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, filter: 'blur(10px)' }}
+      animate={{ opacity: 1, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, filter: 'blur(10px)' }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="page-transition-wrapper w-full h-full"
+    >
+      {children}
     </motion.div>
   );
 };

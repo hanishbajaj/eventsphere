@@ -112,6 +112,18 @@ router.get('/my', authenticate, authorize('buyer'), async (req, res) => {
   }
 });
 
+// GET /api/tickets/user/:eventId — Checks if verified buyer has event ticket
+router.get('/user/:eventId', authenticate, async (req, res) => {
+  try {
+    const tickets = await findAll('tickets', { buyerId: req.user.id, eventId: req.params.eventId });
+    const hasTicket = tickets.some(t => t.status === 'confirmed' || t.status === 'active');
+    res.status(200).json({ hasTicket });
+  } catch(err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
 // GET /api/tickets/:id
 router.get('/:id', async (req, res) => {
   try {
